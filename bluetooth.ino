@@ -114,11 +114,11 @@ void setupBluetoothBle() {
   pBLEScan->start(5, false);
 }
 
-bool isConnected() {
+bool bluetoothIsConnected() {
   return connected;
 }
 
-void tryConnect() {
+void bluetoothTryConnect() {
   // If the flag "doConnect" is true then we have scanned for and found the desired
   // BLE Server with which we wish to connect.  Now we connect to it.  Once we are 
   // connected we set the connected flag to be true.
@@ -129,19 +129,5 @@ void tryConnect() {
       Serial.println("We have failed to connect to the server; there is nothin more we will do.");
     }
     doConnect = false;
-  }
-}
-
-void tryGetData() {
-  // If we are connected to a peer BLE Server, update the characteristic each time we are reached
-  // with the current time since boot.
-  if (connected) {
-    /*String newValue = "Time since boot: " + String(millis()/1000);
-    Serial.println("Setting new characteristic value to \"" + newValue + "\"");
-    
-    // Set the characteristic's value to be the array of bytes that is actually a string.
-    pRemoteCharacteristic->writeValue(newValue.c_str(), newValue.length()); */
-  }else if(doScan){
-    BLEDevice::getScan()->start(0);  // this is just eample to start scan after disconnect, most likely there is better way to do it in arduino
   }
 }
