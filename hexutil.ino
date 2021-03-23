@@ -91,3 +91,14 @@ void hexutilSetIntValueToArray(byte *buffer, int startPosition, int value) {
   buffer[startPosition] = byte(value >> 8); // higher byte
   buffer[startPosition + 1] = byte(value & 0x00FF); // lower byte
 }
+
+int hexutilGetInteger(byte *buffer, int startPosition, int arrayLength) {
+  if (startPosition > (arrayLength - 2)) {
+    Serial.println("startPosition > array length");
+    return 0;
+  }
+  int result = 0;
+  result = buffer[startPosition] << 8;
+  result += buffer[startPosition + 1];
+  return result;
+}

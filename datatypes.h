@@ -1,0 +1,22 @@
+typedef struct smartbmsutilRunInfo {
+   int batteryVoltages[32];
+   int batteryTemp[8];
+   int currentV;
+   int currentA;
+   int nowValuePercent;
+   int maxCellVoltage;
+   int minCellVoltage;
+   int countBatteryVoltages;
+   int countBatteryTemp;
+   int cycle;
+   int jh;
+   int cdmos;
+   int fdmos;
+   int avgVoltage;
+   int diffVoltage;
+   int currentKw;
+   int alarm1;
+   int alarm2;
+   int alarm3;
+   int alarm4;
+}SmartbmsutilRunInfo;

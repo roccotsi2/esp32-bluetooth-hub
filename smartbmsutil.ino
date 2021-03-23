@@ -26,29 +26,6 @@
 #define MCU_VERSION "MCU v5.14"
 #define MACHINE_VERSION "Machine v5.14"
 
-struct SmartbmsutilRunInfo {
-   int batteryVoltages[32];
-   int batteryTemp[8];
-   int currentV;
-   int currentA;
-   int nowValuePercent;
-   int maxCellVoltage;
-   int minCellVoltage;
-   int countBatteryVoltages;
-   int countBatteryTemp;
-   int cycle;
-   int jh;
-   int cdmos;
-   int fdmos;
-   int avgVoltage;
-   int diffVoltage;
-   int currentKw;
-   int alarm1;
-   int alarm2;
-   int alarm3;
-   int alarm4;
-};
-
 void smartbmsutilGetCRC(byte *crcArray, byte *sourceByteArray, int crcRelevantDataLength) {
   int CRC = 65535;
   for (int i = 0; i < crcRelevantDataLength; i++) {
@@ -196,7 +173,7 @@ void smartbmsutilCreateRunInfoResponse(byte *buffer, int currentV, int currentA)
   buffer[119] = 0;
   buffer[120] = 0;
 
-  // alarm 1
+  // alarm 1hexutilGetInteger
   buffer[121] = 0;
   buffer[122] = 0;
 
@@ -242,15 +219,15 @@ void smartbmsutilCreateRunInfoLastBatteryValueResponse(byte *buffer) {
 bool smartbmsutilCheckCrc(byte *buffer, int size) {
   int contentLength = buffer[2];
   if (size < 5 + contentLength) {
-    Serial.print("Array length too small: ");
+    Serial.print("smartbmsutilCheckCrc: Array length too small: ");
     Serial.println(size);
     return false;
   }
   
   byte crcBuffer[2];
   smartbmsutilGetCRC(crcBuffer, buffer, 3 + contentLength);
-  if (crcBuffer[0] != buffer[3 + contentLength] || crcBuffer[0] != buffer[4 + contentLength]) {
-    Serial.println("CRC does not match");
+  if (crcBuffer[0] != buffer[3 + contentLength] || crcBuffer[1] != buffer[4 + contentLength]) {
+    Serial.println("smartbmsutilCheckCrc: CRC does not match");
     return false;
   }
   return true;
@@ -259,7 +236,7 @@ bool smartbmsutilCheckCrc(byte *buffer, int size) {
 // return true if packet is valid (full packet with correct header, correct crc)
 bool smartbmsutilIsValidPacket(byte *buffer, int size) {
   if (size < 3) {
-    Serial.print("Array length too small: ");
+    Serial.print("smartbmsutilIsValidPacket: Array length too small: ");
     Serial.println(size);
     return false;
   }
@@ -272,19 +249,41 @@ bool smartbmsutilIsValidPacket(byte *buffer, int size) {
   return smartbmsutilCheckCrc(buffer, size);
 }
 
-struct SmartbmsutilRunInfo smartbmsutilGetRunInfo(byte *buffer, int size) {
-  struct SmartbmsutilRunInfo result = {0};
+SmartbmsutilRunInfo smartbmsutilGetRunInfo(byte *buffer, int size) {
+  SmartbmsutilRunInfo result = {0};
   if (size < 129) {
-    Serial.print("Array length too small: ");
+    Serial.print("smartbmsutilGetRunInfo: Array length too small: ");
     Serial.println(size);
     return result;
   }
   if (!smartbmsutilIsValidPacket(buffer, size)) {
-    Serial.print("Array length too small: ");
-    Serial.println(size);
+    Serial.println("smartbmsutilGetRunInfo: Packet not valid");
     return result;
   }
 
-  // TODO: fill result
+  for (int i = 0; i < 32; i++) {
+    result.batteryVoltages[i] = hexutilGetInteger(buffer, 3 + 2*i, size);
+  }
+  for (int i = 0; i < 8; i++) {
+    result.batteryTemp[i] = hexutilGetInteger(buffer, 3 + 64 + 2*i, size);
+  }
+  result.countBatteryVoltages = hexutilGetInteger(buffer, 101, size);
+  result.countBatteryTemp = hexutilGetInteger(buffer, 103, size);
   return result;
+}
+
+void smartbmsutilPrintRunInfo(SmartbmsutilRunInfo runInfo) {
+  Serial.print("Battery voltages: ");
+  for (int i = 0; i < runInfo.countBatteryVoltages; i++) {
+    Serial.print(runInfo.batteryVoltages[i] / 1000.0, 3);
+    Serial.print("V ");
+  }
+  Serial.println();
+
+  Serial.print("Battery temps: ");
+  for (int i = 0; i < runInfo.countBatteryTemp; i++) {
+    Serial.print(runInfo.batteryTemp[i] - 40);
+    Serial.print("°C ");
+  }
+  Serial.println();
 }

@@ -1,9 +1,10 @@
 #include "BLEDevice.h"
+#include "datatypes.h"
 
 void setup() {
   Serial.begin(115200);
   Serial.println("Starting Arduino BLE Client application...");
-  setupBluetoothBle();
+  bluetoothSetupBluetoothBle();
 } // End of setup.
 
 

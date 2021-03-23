@@ -14,12 +14,22 @@ static void notifyCallback(
   uint8_t* pData,
   size_t length,
   bool isNotify) {
-    Serial.print("Notify callback for characteristic ");
+    /*Serial.print("Notify callback for characteristic ");
     Serial.print(pBLERemoteCharacteristic->getUUID().toString().c_str());
     Serial.print(" of data length ");
     Serial.println(length);
     Serial.print("data: ");
-    Serial.println((char*)pData);
+    Serial.println((char*)pData);*/
+
+    if (length == 129 && pData[0] == 0xD2 && pData[1] == 0x03 && pData[2] == 0x7C) {
+      unsigned long startMillis = millis();
+      SmartbmsutilRunInfo runInfo = smartbmsutilGetRunInfo(pData, length);
+      unsigned long durationMillis = millis() - startMillis;
+      Serial.print("Used time for reading runInfo: ");
+      Serial.print(durationMillis);
+      Serial.println("ms");
+      smartbmsutilPrintRunInfo(runInfo);
+    }
 }
 
 class MyClientCallback : public BLEClientCallbacks {
@@ -68,11 +78,11 @@ bool connectToServer() {
     Serial.println(" - Found our characteristic");
 
     // Read the value of the characteristic.
-    if(pRemoteCharacteristic->canRead()) {
+    /*if(pRemoteCharacteristic->canRead()) {
       std::string value = pRemoteCharacteristic->readValue();
       Serial.print("The characteristic value was: ");
       Serial.println(value.c_str());
-    }
+    }*/
 
     if(pRemoteCharacteristic->canNotify())
       pRemoteCharacteristic->registerForNotify(notifyCallback);
@@ -100,7 +110,7 @@ class MyAdvertisedDeviceCallbacks: public BLEAdvertisedDeviceCallbacks {
   } // onResult
 }; // MyAdvertisedDeviceCallbacks
 
-void setupBluetoothBle() {
+void bluetoothSetupBluetoothBle() {
   BLEDevice::init("");
 
   // Retrieve a Scanner and set the callback we want to use to be informed when we
