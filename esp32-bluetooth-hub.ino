@@ -7,7 +7,6 @@ void setup() {
   bluetoothSetupBluetoothBle();
 } // End of setup.
 
-
 // This is the Arduino main loop function.
 void loop() {
 

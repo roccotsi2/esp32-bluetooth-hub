@@ -1,4 +1,4 @@
-// General format:
+// General format (big-endian):
 // D203        
 // HEADER_READ CONTENT_LENGTH CONTENT CRC
 // <-----------strGoodData-------------->
@@ -95,7 +95,7 @@ void smartbmsutilCreateRunInfoResponse(byte *buffer, int currentV, int currentA)
   // Position 46: ???
   // Position 47: ???
   // Position 48: ???
-  // Position 49: count battbatteryTemperatureery volt
+  // Position 49: count battery volt
   // Position 50: count battery temperatures (max. 8)
   // Position 51: cycle
   // Position 52: JH on/off
@@ -249,26 +249,30 @@ bool smartbmsutilIsValidPacket(byte *buffer, int size) {
   return smartbmsutilCheckCrc(buffer, size);
 }
 
-SmartbmsutilRunInfo smartbmsutilGetRunInfo(byte *buffer, int size) {
-  SmartbmsutilRunInfo result = {0};
-  if (size < 129) {
-    Serial.print("smartbmsutilGetRunInfo: Array length too small: ");
-    Serial.println(size);
-    return result;
+// swap endians of int16_t (first 2 bytes and starting from 4th byte)
+void smartbmsutilSwapBmsBytesEndian(byte *buffer, int size) {
+  byte tmpValue;
+  tmpValue = buffer[0];
+  buffer[0] = buffer[1];
+  buffer[1] = tmpValue;
+  for (int i = 0; i < ((size - 3) / 2); i++) {
+    tmpValue = buffer[3 + 2*i];
+    buffer[3 + 2*i] = buffer[3 + 2*i + 1];
+    buffer[3 + 2*i + 1] = tmpValue;
   }
-  if (!smartbmsutilIsValidPacket(buffer, size)) {
-    Serial.println("smartbmsutilGetRunInfo: Packet not valid");
-    return result;
-  }
+}
 
-  for (int i = 0; i < 32; i++) {
-    result.batteryVoltages[i] = hexutilGetInteger(buffer, 3 + 2*i, size);
-  }
-  for (int i = 0; i < 8; i++) {
-    result.batteryTemp[i] = hexutilGetInteger(buffer, 3 + 64 + 2*i, size);
-  }
-  result.countBatteryVoltages = hexutilGetInteger(buffer, 101, size);
-  result.countBatteryTemp = hexutilGetInteger(buffer, 103, size);
+SmartbmsutilRunInfo smartbmsutilGetRunInfo(byte *buffer, int size) {
+  // use copy of buffer to not change original buffer
+  byte tmpBuffer[size];
+  memcpy(tmpBuffer, buffer, size);
+
+  // swap bytes to little endian
+  smartbmsutilSwapBmsBytesEndian(tmpBuffer, size);
+
+  // copy tmpBuffer to struct
+  SmartbmsutilRunInfo result;
+  memcpy(&result, tmpBuffer, sizeof(result));  
   return result;
 }
 
@@ -286,4 +290,19 @@ void smartbmsutilPrintRunInfo(SmartbmsutilRunInfo runInfo) {
     Serial.print("°C ");
   }
   Serial.println();
+
+  Serial.print("Max Cell voltage: ");
+  Serial.println(runInfo.maxCellVoltage / 1000.0, 3);
+
+  Serial.print("Min Cell voltage: ");
+  Serial.println(runInfo.minCellVoltage / 1000.0, 3);
+
+  Serial.print("Current voltage: ");
+  Serial.println(runInfo.currentV / 10.0);
+
+  Serial.print("Current A: ");
+  Serial.println((runInfo.currentA - 30000) / 10.0);
+
+  Serial.print("Current KW: ");
+  Serial.println(runInfo.currentKw / 1000.0, 3);
 }

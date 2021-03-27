@@ -81,9 +81,9 @@ void hexutilArrayToString(byte array[], unsigned int len, char buffer[])
     buffer[len*2] = '\0';
 }
 
-void hexutilPrintByteArrayInHex(byte *buffer) {
-  char str[1000] = "";
-  hexutilArrayToString(buffer, sizeof(buffer), str);
+void hexutilPrintByteArrayInHex(byte *buffer, int arrayLength) {
+  char str[2*arrayLength] = "";
+  hexutilArrayToString(buffer, arrayLength, str);
   Serial.println(str);
 }
 
@@ -101,4 +101,8 @@ int hexutilGetInteger(byte *buffer, int startPosition, int arrayLength) {
   result = buffer[startPosition] << 8;
   result += buffer[startPosition + 1];
   return result;
+}
+
+int16_t hexutilSwapEndian(int16_t num) {
+  return (num>>8) | (num<<8);
 }
