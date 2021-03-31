@@ -10,15 +10,7 @@ static BLERemoteCharacteristic* pRemoteCharacteristic;
 static BLEAdvertisedDevice* myDevice;
 
 static void notifyCallback(BLERemoteCharacteristic* pBLERemoteCharacteristic, uint8_t* pData, size_t length, bool isNotify) {
-    if (length == 129 && pData[0] == 0xD2 && pData[1] == 0x03 && pData[2] == 0x7C) {
-      unsigned long startMillis = millis();
-      SmartbmsutilRunInfo runInfo = smartbmsutilGetRunInfo(pData, length);
-      unsigned long durationMillis = millis() - startMillis;
-      Serial.print("Used time for reading runInfo: ");
-      Serial.print(durationMillis);
-      Serial.println("ms");
-      smartbmsutilPrintRunInfo(runInfo);
-    }
+  smartbmsutilDataReceived(pData, length);
 }
 
 class MyClientCallback : public BLEClientCallbacks {

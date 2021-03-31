@@ -6,7 +6,7 @@
 // Content length (byte): 124 -> Run Info
 // Content length (byte): 32  -> Run Info Last Battery Value
 // Content length (byte): 82  -> Set Info
-// Content length (byte): 64  -> Version
+// Content length (byte):buffer 64  -> Version
 // Content length (byte): 6   -> PWD
 
 // Format send by Smart BMS APP:
@@ -25,6 +25,14 @@
 #define APP_VERSION "App v5.14"
 #define MCU_VERSION "MCU v5.14"
 #define MACHINE_VERSION "Machine v5.14"
+
+#define RECEIVE_BUFFER_SIZE 500
+#define READ_PACKET_HEADER_LENGTH 3 // the number of bytes for header of read packets (header, content length)
+#define READ_PACKET_CRC_LENGTH 2 // the number of bytes for CRC of read packets
+#define READ_PACKET_OVERHEAD_LENGTH  READ_PACKET_HEADER_LENGTH + READ_PACKET_CRC_LENGTH // the number of bytes for overhead (header, content length, CRC)
+
+byte smartBmsReceiveBuffer[RECEIVE_BUFFER_SIZE];
+uint16_t indexSmartBmsReceiveBuffer = 0;
 
 void smartbmsutilGetCRC(byte *crcArray, byte *sourceByteArray, int crcRelevantDataLength) {
   int CRC = 65535;
@@ -54,10 +62,10 @@ void smartbmsutilCreateVersionResponse(byte *buffer, String appVersion, String m
   buffer[0] = 0xD2;
   buffer[1] = 0x03;
   buffer[2] = 0x40; // content length "40" = 64
-  for (int i = 3; i < 3 + 16; i++) {
+  for (int i = READ_PACKET_HEADER_LENGTH; i < READ_PACKET_HEADER_LENGTH + 16; i++) {
     // app version is reversed
-    if (lengthApp >= 3 + 16 - i) {
-      buffer[i] = appVersion[3 + 15 - i];
+    if (lengthApp >= READ_PACKET_HEADER_LENGTH + 16 - i) {
+      buffer[i] = appVersion[READ_PACKET_HEADER_LENGTH + 15 - i];
     } else {
       buffer[i] = 0;
     }
@@ -116,9 +124,9 @@ void smartbmsutilCreateRunInfoResponse(byte *buffer, int currentV, int currentA)
   int batteryMilliVolt = MIN_CELL_VOLTAGE;
   for (int i = 0; i < 32; i++) {
     if (COUNT_BATTERIES >= i + 1) {
-      hexutilSetIntValueToArray(buffer, 3 + 2*i, batteryMilliVolt);
+      hexutilSetIntValueToArray(buffer, READ_PACKET_HEADER_LENGTH + 2*i, batteryMilliVolt);
     } else {
-      hexutilSetIntValueToArray(buffer, 3 + 2*i, 0);
+      hexutilSetIntValueToArray(buffer, READ_PACKET_HEADER_LENGTH + 2*i, 0);
     }
     batteryMilliVolt = batteryMilliVolt + 10;
   }
@@ -126,10 +134,10 @@ void smartbmsutilCreateRunInfoResponse(byte *buffer, int currentV, int currentA)
   int batteryTemperature = 60;
   for (int i = 0; i < 8; i++) {
     if (COUNT_BATTERIES >= i + 1) {
-      hexutilSetIntValueToArray(buffer, 3 + 64 + 2*i, batteryTemperature);
+      hexutilSetIntValueToArray(buffer, READ_PACKET_HEADER_LENGTH + 64 + 2*i, batteryTemperature);
       batteryTemperature++;
     } else {
-      hexutilSetIntValueToArray(buffer, 3 + 64 + 2*i, 0);
+      hexutilSetIntValueToArray(buffer, READ_PACKET_HEADER_LENGTH + 64 + 2*i, 0);
     }
   }
 
@@ -203,30 +211,30 @@ void smartbmsutilCreateRunInfoLastBatteryValueResponse(byte *buffer) {
   for (int i = 0; i < 16; i++) {
     if (COUNT_BATTERIES >= i + 1) {
       batteryMilliVolt = batteryMilliVolt + 10 * i;
-      hexutilSetIntValueToArray(buffer, 3 + 2*i, batteryMilliVolt);
+      hexutilSetIntValueToArray(buffer, READ_PACKET_HEADER_LENGTH + 2*i, batteryMilliVolt);
     } else {
-      hexutilSetIntValueToArray(buffer, 3 + 2*i, 0);
+      hexutilSetIntValueToArray(buffer, READ_PACKET_HEADER_LENGTH + 2*i, 0);
     }
   }
   
   byte crcBuffer[2];
-  smartbmsutilGetCRC(crcBuffer, buffer, 127);
-  buffer[127] = crcBuffer[0];
-  buffer[128] = crcBuffer[1];
+  smartbmsutilGetCRC(crcBuffer, buffer, 35);
+  buffer[35] = crcBuffer[0];
+  buffer[36] = crcBuffer[1];
 }
 
 // returns true if CRC is OK
 bool smartbmsutilCheckCrc(byte *buffer, int size) {
   int contentLength = buffer[2];
-  if (size < 5 + contentLength) {
+  if (size < READ_PACKET_OVERHEAD_LENGTH + contentLength) {
     Serial.print("smartbmsutilCheckCrc: Array length too small: ");
     Serial.println(size);
     return false;
   }
   
   byte crcBuffer[2];
-  smartbmsutilGetCRC(crcBuffer, buffer, 3 + contentLength);
-  if (crcBuffer[0] != buffer[3 + contentLength] || crcBuffer[1] != buffer[4 + contentLength]) {
+  smartbmsutilGetCRC(crcBuffer, buffer, READ_PACKET_HEADER_LENGTH + contentLength);
+  if (crcBuffer[0] != buffer[READ_PACKET_HEADER_LENGTH + contentLength] || crcBuffer[1] != buffer[READ_PACKET_HEADER_LENGTH + contentLength + 1]) {
     Serial.println("smartbmsutilCheckCrc: CRC does not match");
     return false;
   }
@@ -235,7 +243,7 @@ bool smartbmsutilCheckCrc(byte *buffer, int size) {
 
 // return true if packet is valid (full packet with correct header, correct crc)
 bool smartbmsutilIsValidPacket(byte *buffer, int size) {
-  if (size < 3) {
+  if (size < READ_PACKET_HEADER_LENGTH) {
     Serial.print("smartbmsutilIsValidPacket: Array length too small: ");
     Serial.println(size);
     return false;
@@ -249,25 +257,69 @@ bool smartbmsutilIsValidPacket(byte *buffer, int size) {
   return smartbmsutilCheckCrc(buffer, size);
 }
 
-// swap endians of int16_t (first 2 bytes and starting from 4th byte)
+// swap endians of int16_t (starting from 4th byte)
 void smartbmsutilSwapBmsBytesEndian(byte *buffer, int size) {
   byte tmpValue;
-  tmpValue = buffer[0];
-  buffer[0] = buffer[1];
-  buffer[1] = tmpValue;
-  for (int i = 0; i < ((size - 3) / 2); i++) {
-    tmpValue = buffer[3 + 2*i];
-    buffer[3 + 2*i] = buffer[3 + 2*i + 1];
-    buffer[3 + 2*i + 1] = tmpValue;
+  for (int i = 0; i < ((size - READ_PACKET_HEADER_LENGTH) / 2); i++) {
+    tmpValue = buffer[READ_PACKET_HEADER_LENGTH + 2*i];
+    buffer[READ_PACKET_HEADER_LENGTH + 2*i] = buffer[READ_PACKET_HEADER_LENGTH + 2*i + 1];
+    buffer[READ_PACKET_HEADER_LENGTH + 2*i + 1] = tmpValue;
   }
 }
 
+void smartbmsutilDataReceived(byte *pData, size_t length) {
+  if (length == 0) {
+    // nothing to do
+    return;
+  }
+  if (indexSmartBmsReceiveBuffer + length > RECEIVE_BUFFER_SIZE) {
+    Serial.println("smartBmsReceiveBuffer too small");
+    return;
+  }
+
+  for (int i = 0; i < length; i++) {
+    smartBmsReceiveBuffer[indexSmartBmsReceiveBuffer] = pData[i];
+    indexSmartBmsReceiveBuffer++;
+  }
+
+  Serial.print("indexSmartBmsReceiveBuffer: ");
+  Serial.println(indexSmartBmsReceiveBuffer);
+
+  Serial.print("length: ");
+  Serial.println(length);
+
+  bool isReadHeader = smartBmsReceiveBuffer[0] == 0xD2 && smartBmsReceiveBuffer[1] == 0x03;
+
+  if (isReadHeader) {
+    int contentLength = smartBmsReceiveBuffer[2];
+    if (contentLength + READ_PACKET_OVERHEAD_LENGTH == indexSmartBmsReceiveBuffer) {
+      Serial.println("Packet is complete");
+      // packet is complete
+      if (smartbmsutilIsValidPacket(smartBmsReceiveBuffer, indexSmartBmsReceiveBuffer)) {
+        Serial.println("Packet is valid");
+        // packet is valid
+        if (smartBmsReceiveBuffer[2] == 0x7C) {
+          // Packet is RunInfo
+          SmartbmsutilRunInfo runInfo = smartbmsutilGetRunInfo(smartBmsReceiveBuffer, indexSmartBmsReceiveBuffer);
+          smartbmsutilPrintRunInfo(runInfo);
+        }
+      }
+
+      // reset smartBmsReceiveBuffer
+      memset(smartBmsReceiveBuffer, 0, sizeof(smartBmsReceiveBuffer));
+      indexSmartBmsReceiveBuffer = 0;
+      Serial.println("Buffer reset");
+    }
+  }
+}
+
+// this method assumes that packet is valid (CRC checked)
 SmartbmsutilRunInfo smartbmsutilGetRunInfo(byte *buffer, int size) {
-  // use copy of buffer to not change original buffer
+  // use copy of buffer to not change original buffer for endian conversion
   byte tmpBuffer[size];
   memcpy(tmpBuffer, buffer, size);
 
-  // swap bytes to little endian
+  // swap bytes to little endian (as structs are organized in little endian in ESP32)
   smartbmsutilSwapBmsBytesEndian(tmpBuffer, size);
 
   // copy tmpBuffer to struct

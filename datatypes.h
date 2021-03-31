@@ -1,6 +1,7 @@
 #pragma pack(1)
 typedef struct smartbmsutilRunInfo {
-   int16_t headerRead;
+   int8_t header1;
+   int8_t header2;
    int8_t contentLength;
    int16_t batteryVoltages[32];
    int16_t batteryTemp[8];
