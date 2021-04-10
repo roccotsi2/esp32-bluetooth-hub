@@ -21,6 +21,11 @@
 byte smartBmsReceiveBuffer[RECEIVE_BUFFER_SIZE];
 uint16_t indexSmartBmsReceiveBuffer = 0;
 
+void smartbmsutilResetReceiveBuffer() {
+  memset(smartBmsReceiveBuffer, 0, sizeof(smartBmsReceiveBuffer));
+  indexSmartBmsReceiveBuffer = 0;
+}
+
 void smartbmsutilGetCRC(byte *crcArray, byte *sourceByteArray, int crcRelevantDataLength) {
   int CRC = 65535;
   for (int i = 0; i < crcRelevantDataLength; i++) {
@@ -88,8 +93,12 @@ void smartbmsutilDataReceived(byte *pData, size_t length) {
     // nothing to do
     return;
   }
+
+  hexutilPrintByteArrayInHex(pData, length);
+  
   if (indexSmartBmsReceiveBuffer + length > RECEIVE_BUFFER_SIZE) {
-    Serial.println("smartBmsReceiveBuffer too small");
+    Serial.println("smartBmsReceiveBuffer too small. Resetting buffer.");
+    smartbmsutilResetReceiveBuffer();
     return;
   }
 
@@ -114,8 +123,7 @@ void smartbmsutilDataReceived(byte *pData, size_t length) {
       }
 
       // reset smartBmsReceiveBuffer
-      memset(smartBmsReceiveBuffer, 0, sizeof(smartBmsReceiveBuffer));
-      indexSmartBmsReceiveBuffer = 0;
+      smartbmsutilResetReceiveBuffer();
     }
   }
 }
