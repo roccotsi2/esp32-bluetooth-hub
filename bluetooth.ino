@@ -93,12 +93,6 @@ class MyAdvertisedDeviceCallbacks: public BLEAdvertisedDeviceCallbacks {
 
 void bluetoothSetupBluetoothBle() {
   BLEDevice::init("");
-  /*int error = BLEDevice::setMTU(200);
-  Serial.print("setMTU: ");
-  Serial.println(esp_err_to_name(error));*/
-
-  Serial.print("getMTU: ");
-  Serial.println(BLEDevice::getMTU());
 
   // Retrieve a Scanner and set the callback we want to use to be informed when we
   // have detected a new device.  Specify that we want active scanning and start the

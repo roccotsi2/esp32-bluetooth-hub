@@ -93,8 +93,6 @@ void smartbmsutilDataReceived(byte *pData, size_t length) {
     // nothing to do
     return;
   }
-
-  hexutilPrintByteArrayInHex(pData, length);
   
   if (indexSmartBmsReceiveBuffer + length > RECEIVE_BUFFER_SIZE) {
     Serial.println("smartBmsReceiveBuffer too small. Resetting buffer.");
@@ -116,9 +114,10 @@ void smartbmsutilDataReceived(byte *pData, size_t length) {
       if (smartbmsutilIsValidPacket(smartBmsReceiveBuffer, indexSmartBmsReceiveBuffer)) {
         // packet is valid
         if (smartBmsReceiveBuffer[2] == 0x7C) {
-          // Packet is RunInfo
+          // Packet is RunInfo (content length = 0x7C)
           SmartbmsutilRunInfo runInfo = smartbmsutilGetRunInfo(smartBmsReceiveBuffer, indexSmartBmsReceiveBuffer);
-          smartbmsutilPrintRunInfo(runInfo);
+          displayDrawDynamicContentBms(runInfo);
+          //smartbmsutilPrintRunInfo(runInfo);
         }
       }
 
