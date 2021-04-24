@@ -5,7 +5,11 @@
 #include "BLEDevice.h"
 #include "datatypes.h"
 #include "epd_driver.h"
-#include "firasans.h"
+#include "opensans8b.h"
+#include "opensans10b.h"
+#include "opensans12b.h"
+#include "opensans18b.h"
+#include "opensans24b.h"
 
 #define GPIO_1        35
 #define GPIO_2        34
