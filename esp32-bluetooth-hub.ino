@@ -50,7 +50,6 @@ void setup() {
     bluetoothSetupBluetoothBle();
   }
   displayInit();
-  displayDrawStaticContentBms();
 
   if (demoMode) {
     SmartbmsutilRunInfo runInfo;

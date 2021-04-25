@@ -14,30 +14,6 @@ void updateDisplay() {
   epd_poweroff_all();
 }
 
-void displayDrawStaticContentBms() {  
-  /*int x = 50;
-  int y = 50;  
-  write_string(&OpenSans8B, "OpenSans8B", &x, &y, frameBuffer);
-
-  x = 50;
-  y = 150;  
-  write_string(&OpenSans10B, "OpenSans10B", &x, &y, frameBuffer);
-
-  x = 50;
-  y = 250;  
-  write_string(&OpenSans12B, "OpenSans12B", &x, &y, frameBuffer);
-
-  x = 50;
-  y = 350;  
-  write_string(&OpenSans18B, "OpenSans18B", &x, &y, frameBuffer);
-
-  x = 50;
-  y = 450;  
-  write_string(&OpenSans24B, "OpenSans24B", &x, &y, frameBuffer);
-
-  updateDisplay();*/
-}
-
 GFXfont getFont(int size) {
   if (size == 8) {
     return OpenSans8B;
@@ -69,6 +45,18 @@ void drawHLine(int x, int y, int length, uint8_t color, int thickness) {
 void drawVLine(int x, int y, int length, uint8_t color, int thickness) {
   for (int i = 0; i < thickness; i++) {
     epd_draw_vline(x + i, y, length, color, frameBuffer);
+  }
+}
+
+void drawArrow(int xLine, int yLine, int length, bool toRight) {
+  if (!toRight) {
+    // right to left
+    drawHLine(xLine, yLine, length, COLOR_BLACK, 5);
+    epd_fill_triangle(xLine - 23, yLine + 2, xLine, yLine - 8, xLine, yLine + 12, COLOR_BLACK, frameBuffer);
+  } else {
+    // left to right
+    drawHLine(xLine, yLine, length, COLOR_BLACK, 5);
+    epd_fill_triangle(xLine + 38, yLine + 2, xLine + 15, yLine - 8, xLine + 15, yLine + 12, COLOR_BLACK, frameBuffer);
   }
 }
 
@@ -106,13 +94,14 @@ void drawHeader(char *title) {
   drawString(12, 220, 27, "Res");
 
   // button left
-  drawHLine(380, 18, 15, COLOR_BLACK, 5);
-  epd_fill_triangle(357, 20, 380, 10, 380, 30, COLOR_BLACK, frameBuffer);
+  //drawHLine(380, 18, 15, COLOR_BLACK, 5);
+  //epd_fill_triangle(357, 20, 380, 10, 380, 30, COLOR_BLACK, frameBuffer);
+  drawArrow(380, 18, 15, false);
 
   // button right
-  //drawString(12, 445, 32, "❭");
-  drawHLine(430, 18, 15, COLOR_BLACK, 5);
-  epd_fill_triangle(468, 20, 445, 10, 445, 30, COLOR_BLACK, frameBuffer);
+  //drawHLine(430, 18, 15, COLOR_BLACK, 5);
+  //epd_fill_triangle(468, 20, 445, 10, 445, 30, COLOR_BLACK, frameBuffer);
+  drawArrow(430, 18, 15, true);
 
   // button select
   drawString(12, 495, 27, "Sel");
@@ -127,7 +116,15 @@ void drawHeader(char *title) {
   drawVLine(560, 0, 40, COLOR_BLACK, 2);
 }
 
-void displayDrawDynamicContentBms(SmartbmsutilRunInfo runInfo) {
+void drawBmsSectionBorders() {
+  // divide in left and right area
+  drawVLine(EPD_WIDTH / 2, 40, EPD_HEIGHT - 40, COLOR_BLACK, 2);
+
+  // devide right area in top and bottom area
+  drawHLine(EPD_WIDTH / 2, 340, EPD_WIDTH / 2, COLOR_BLACK, 2);
+}
+
+void drawBmsOverviewData(SmartbmsutilRunInfo runInfo) {
   float currentV = runInfo.currentV / 10.0;
   float currentA = (runInfo.currentA - 30000) / 10.0;
   float currentKw = runInfo.currentKw / 1000.0;
@@ -148,14 +145,6 @@ void displayDrawDynamicContentBms(SmartbmsutilRunInfo runInfo) {
   sprintf(zAvgText, "%.2f V", zAvg);
   char cycleText[10];
   sprintf(cycleText, "%ld", runInfo.avgVoltage);
-
-  drawHeader("BMS");
-
-  // divide in left and right area
-  drawVLine(EPD_WIDTH / 2, 40, EPD_HEIGHT - 40, COLOR_BLACK, 2);
-
-  // devide right area in top and bottom area
-  drawHLine(EPD_WIDTH / 2, 340, EPD_WIDTH / 2, COLOR_BLACK, 2);
 
   drawString(18, 5, 90, "Ladung:");
   drawProgressBar(235, 50, 230, 50, 33);
@@ -186,8 +175,16 @@ void displayDrawDynamicContentBms(SmartbmsutilRunInfo runInfo) {
 
   drawString(18, 230, 340, "Zyklen:");
   drawString(18, 370, 340, cycleText);
+}
 
+void drawBmsBatteries(SmartbmsutilRunInfo runInfo) {
   drawBattery(EPD_WIDTH / 2 + 10, 70, 50, 30, 1);
+}
 
+void displayDrawDynamicContentBms(SmartbmsutilRunInfo runInfo) {
+  drawHeader("BMS");
+  drawBmsSectionBorders();
+  drawBmsOverviewData(runInfo);
+  drawBmsBatteries(runInfo);
   updateDisplay();
 }
