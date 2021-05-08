@@ -94,14 +94,15 @@ void drawBattery(int x, int y, int length, int height, int number) {
   // draw battery (starts from upper left corner and goes clockwise)
   int quarterHeight = height / 4;
   int batteryCapLength = length / 10;
-  drawHLine(x, y, length - batteryCapLength, COLOR_BLACK, 2); // top horizontal line
-  drawVLine(x + length - batteryCapLength, y, quarterHeight, COLOR_BLACK, 2); // top right vertical line
-  drawHLine(x + length - batteryCapLength, y + quarterHeight, batteryCapLength, COLOR_BLACK, 2); // top right horizontal line
-  drawVLine(x + length, y + quarterHeight, height - (quarterHeight) - (quarterHeight) + 1, COLOR_BLACK, 2); // middle right vertical line
-  drawHLine(x + length - batteryCapLength, y + height - (quarterHeight), batteryCapLength, COLOR_BLACK, 2); // bottom right horizontal line
-  drawVLine(x + length - batteryCapLength, y + height - (quarterHeight), quarterHeight + 1, COLOR_BLACK, 2); // bottom right vertical line 
-  drawHLine(x, y + height, length - batteryCapLength, COLOR_BLACK, 2); // bottom horizontal line
-  drawVLine(x, y, height, COLOR_BLACK, 2); // left vertical line
+  int lineWidth = 2 + length / 100; // adaptive line with
+  drawHLine(x, y, length - batteryCapLength, COLOR_BLACK, lineWidth); // top horizontal line
+  drawVLine(x + length - batteryCapLength, y, quarterHeight, COLOR_BLACK, lineWidth); // top right vertical line
+  drawHLine(x + length - batteryCapLength, y + quarterHeight, batteryCapLength, COLOR_BLACK, lineWidth); // top right horizontal line
+  drawVLine(x + length - lineWidth, y + quarterHeight, height - (quarterHeight) - (quarterHeight), COLOR_BLACK, lineWidth); // middle right vertical line
+  drawHLine(x + length - batteryCapLength, y + height - (quarterHeight), batteryCapLength, COLOR_BLACK, lineWidth); // bottom right horizontal line
+  drawVLine(x + length - batteryCapLength, y + height - (quarterHeight), quarterHeight + lineWidth, COLOR_BLACK, lineWidth); // bottom right vertical line 
+  drawHLine(x, y + height, length - batteryCapLength, COLOR_BLACK, lineWidth); // bottom horizontal line
+  drawVLine(x, y, height, COLOR_BLACK, lineWidth); // left vertical line
 
   // draw the number in the middle of battery
   char numberText[2];
@@ -221,6 +222,33 @@ void drawBmsBatteries(SmartbmsutilRunInfo *runInfo) {
       batteryIndex++;
     }
   }
+
+  // TEST
+  drawBattery(startX, 200, 200, 70, 1);
+}
+
+void drawBmsTemperatures(SmartbmsutilRunInfo *runInfo) {
+  char text[10];
+  int countTemperaturesPerRow = 2;
+  int textHeight = 0;
+  int textWidth = 0;
+  getTextWidthAndHeight(18, "T1: 21°C", &textWidth, &textHeight);
+  int margin = 20;
+  int temperatureIndex = 0;
+  int startX = EPD_WIDTH / 2 + margin;
+  int startY = 390;
+  int temperatureFieldWidth = (EPD_WIDTH / 2 - 2 * margin) / countTemperaturesPerRow;
+  int temperatureFieldHeight = 80;
+  int numRows = round(runInfo->countBatteryTemp / countTemperaturesPerRow);
+  for (int row = 0; row < numRows; row++) {
+    for (int column = 0; column < countTemperaturesPerRow; column++) { 
+      int temperatureX = startX + column * temperatureFieldWidth;
+      int temperatureY = startY + row * temperatureFieldHeight;
+      sprintf(text, "T%d: %d°C", temperatureIndex + 1, runInfo->batteryTemp[temperatureIndex] - 40); 
+      drawString(18, temperatureX, temperatureY, text);
+      temperatureIndex++;
+    }
+  }
 }
 
 void displayDrawContentBms(SmartbmsutilRunInfo *runInfo) {
@@ -228,5 +256,6 @@ void displayDrawContentBms(SmartbmsutilRunInfo *runInfo) {
   drawBmsSectionBorders();
   drawBmsOverviewData(runInfo);
   drawBmsBatteries(runInfo);
+  drawBmsTemperatures(runInfo);
   updateDisplay();
 }
