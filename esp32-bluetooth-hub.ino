@@ -54,7 +54,7 @@ void setup() {
   if (demoMode) {
     SmartbmsutilRunInfo runInfo;
     smartbmsdemoFillSmartbmsutilRunInfo(&runInfo);
-    displayDrawDynamicContentBms(runInfo);
+    displayDrawContentBms(&runInfo);
   }
 }
 

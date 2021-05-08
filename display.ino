@@ -31,6 +31,15 @@ GFXfont getFont(int size) {
   }
 }
 
+void getTextWidthAndHeight(int size, char *text, int *width, int *height) {
+  int x = 100;
+  int y = 100;
+  int x1 = 0;
+  int y1 = 0;
+  GFXfont font = getFont(size);
+  get_text_bounds(&font, text, &x, &y, &x1, &y1, width, height, NULL); 
+}
+
 void drawString(int size, int x, int y, char *text) {
   GFXfont font = getFont(size);
   write_string(&font, text, &x, &y, frameBuffer);
@@ -72,15 +81,29 @@ void drawProgressBar(int x, int y, int width, int height, int value) {
   epd_fill_rect(x, y, fillWidth, height, COLOR_GREY, frameBuffer);
 }
 
+/**
+ * Draw a battery with a number inside
+ *
+ * @param x x-coordinate of the upper left corner
+ * @param y x-coordinate of the upper left corner
+ * @param length Length of the battery in pixels
+ * @param height Height of the battery in pixels
+ * @param number Number to write in the middle of the battery
+ */
 void drawBattery(int x, int y, int length, int height, int number) {
-  drawHLine(x, y, length - 10, COLOR_BLACK, 2);
-  drawHLine(x, y + height, length - 10, COLOR_BLACK, 2);
-  drawVLine(x, y, height, COLOR_BLACK, 2);
-  drawVLine(x + length - 10, y, height / 4, COLOR_BLACK, 2);
-  drawVLine(x + length - 10, y + height - (height / 4), height / 4, COLOR_BLACK, 2);
-  drawHLine(x + length - 10, y + height / 4, 10, COLOR_BLACK, 2);
-  drawHLine(x + length - 10, y + height - (height / 4), 10, COLOR_BLACK, 2);
-  drawVLine(x + length, y + height / 4, y + height - (height / 4) - (y + height / 4), COLOR_BLACK, 2);
+  // draw battery (starts from upper left corner and goes clockwise)
+  int quarterHeight = height / 4;
+  int batteryCapLength = length / 10;
+  drawHLine(x, y, length - batteryCapLength, COLOR_BLACK, 2); // top horizontal line
+  drawVLine(x + length - batteryCapLength, y, quarterHeight, COLOR_BLACK, 2); // top right vertical line
+  drawHLine(x + length - batteryCapLength, y + quarterHeight, batteryCapLength, COLOR_BLACK, 2); // top right horizontal line
+  drawVLine(x + length, y + quarterHeight, height - (quarterHeight) - (quarterHeight) + 1, COLOR_BLACK, 2); // middle right vertical line
+  drawHLine(x + length - batteryCapLength, y + height - (quarterHeight), batteryCapLength, COLOR_BLACK, 2); // bottom right horizontal line
+  drawVLine(x + length - batteryCapLength, y + height - (quarterHeight), quarterHeight + 1, COLOR_BLACK, 2); // bottom right vertical line 
+  drawHLine(x, y + height, length - batteryCapLength, COLOR_BLACK, 2); // bottom horizontal line
+  drawVLine(x, y, height, COLOR_BLACK, 2); // left vertical line
+
+  // draw the number in the middle of battery
   char numberText[2];
   sprintf(numberText, "%ld", number);
   drawString(8, x + length / 2 - 10, y + height / 2 + 8, numberText);
@@ -88,19 +111,15 @@ void drawBattery(int x, int y, int length, int height, int number) {
 
 void drawHeader(char *title) {
   // title
-  drawString(24, 0, 35, title);
+  drawString(24, 0, 37, title);
 
   // button reset
   drawString(12, 220, 27, "Res");
 
   // button left
-  //drawHLine(380, 18, 15, COLOR_BLACK, 5);
-  //epd_fill_triangle(357, 20, 380, 10, 380, 30, COLOR_BLACK, frameBuffer);
   drawArrow(380, 18, 15, false);
 
   // button right
-  //drawHLine(430, 18, 15, COLOR_BLACK, 5);
-  //epd_fill_triangle(468, 20, 445, 10, 445, 30, COLOR_BLACK, frameBuffer);
   drawArrow(430, 18, 15, true);
 
   // button select
@@ -124,13 +143,13 @@ void drawBmsSectionBorders() {
   drawHLine(EPD_WIDTH / 2, 340, EPD_WIDTH / 2, COLOR_BLACK, 2);
 }
 
-void drawBmsOverviewData(SmartbmsutilRunInfo runInfo) {
-  float currentV = runInfo.currentV / 10.0;
-  float currentA = (runInfo.currentA - 30000) / 10.0;
-  float currentKw = runInfo.currentKw / 1000.0;
-  float zMin = round(runInfo.minCellVoltage / 10.0) / 100.0;
-  float zMax = round(runInfo.maxCellVoltage / 10.0) / 100.0;
-  float zAvg = round(runInfo.avgVoltage / 10.0) / 100.0;
+void drawBmsOverviewData(SmartbmsutilRunInfo *runInfo) {
+  float currentV = runInfo->currentV / 10.0;
+  float currentA = (runInfo->currentA - 30000) / 10.0;
+  float currentKw = runInfo->currentKw / 1000.0;
+  float zMin = round(runInfo->minCellVoltage / 10.0) / 100.0;
+  float zMax = round(runInfo->maxCellVoltage / 10.0) / 100.0;
+  float zAvg = round(runInfo->avgVoltage / 10.0) / 100.0;
   char currentVText[10];
   sprintf(currentVText, "%.1f V", currentV);
   char currentAText[10];
@@ -144,7 +163,7 @@ void drawBmsOverviewData(SmartbmsutilRunInfo runInfo) {
   char zAvgText[10];
   sprintf(zAvgText, "%.2f V", zAvg);
   char cycleText[10];
-  sprintf(cycleText, "%ld", runInfo.avgVoltage);
+  sprintf(cycleText, "%ld", runInfo->avgVoltage);
 
   drawString(18, 5, 90, "Ladung:");
   drawProgressBar(235, 50, 230, 50, 33);
@@ -174,14 +193,37 @@ void drawBmsOverviewData(SmartbmsutilRunInfo runInfo) {
   drawString(18, 80, 340, zAvgText);
 
   drawString(18, 230, 340, "Zyklen:");
-  drawString(18, 370, 340, cycleText);
+  drawString(18, 375, 340, cycleText);
 }
 
-void drawBmsBatteries(SmartbmsutilRunInfo runInfo) {
-  drawBattery(EPD_WIDTH / 2 + 10, 70, 50, 30, 1);
+void drawBmsBatteries(SmartbmsutilRunInfo *runInfo) {
+  char text[10];
+  int countBatteriesPerRow = 4;
+  int textHeight = 0;
+  int textWidth = 0;
+  getTextWidthAndHeight(8, "0.000 V", &textWidth, &textHeight);
+  int margin = 20;
+  int batteryIndex = 0;
+  int startX = EPD_WIDTH / 2 + margin;
+  int startY = 60;
+  int batteryHeight = 30;
+  int batteryFieldWidth = (EPD_WIDTH / 2 - 2 * margin) / countBatteriesPerRow;
+  int batteryFieldHeight = batteryHeight + textHeight + 10;
+  int batteryLength = batteryFieldWidth - margin;
+  int numRows = round(runInfo->countBatteryVoltages / countBatteriesPerRow);
+  for (int row = 0; row < numRows; row++) {
+    for (int column = 0; column < countBatteriesPerRow; column++) { 
+      int batteryX = startX + column * batteryFieldWidth;
+      int batteryY = startY + row * batteryFieldHeight;
+      drawBattery(batteryX, batteryY, batteryLength, batteryHeight, batteryIndex + 1);
+      sprintf(text, "%.3f V", runInfo->batteryVoltages[batteryIndex] / 1000.0); 
+      drawString(8, batteryX + (batteryLength - textWidth) / 2, batteryY + batteryHeight + textHeight + 10, text);
+      batteryIndex++;
+    }
+  }
 }
 
-void displayDrawDynamicContentBms(SmartbmsutilRunInfo runInfo) {
+void displayDrawContentBms(SmartbmsutilRunInfo *runInfo) {
   drawHeader("BMS");
   drawBmsSectionBorders();
   drawBmsOverviewData(runInfo);

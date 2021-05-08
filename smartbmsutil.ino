@@ -116,8 +116,8 @@ void smartbmsutilDataReceived(byte *pData, size_t length) {
         if (smartBmsReceiveBuffer[2] == 0x7C) {
           // Packet is RunInfo (content length = 0x7C)
           SmartbmsutilRunInfo runInfo = smartbmsutilGetRunInfo(smartBmsReceiveBuffer, indexSmartBmsReceiveBuffer);
-          displayDrawDynamicContentBms(runInfo);
-          //smartbmsutilPrintRunInfo(runInfo);
+          displayDrawContentBms(&runInfo);
+          //smartbmsutilPrintRunInfo(&runInfo);
         }
       }
 
@@ -175,33 +175,33 @@ void smartbmsutilWriteSmartbmsutilRunInfoLastBatteryValueToBuffer(byte *buffer, 
   smartbmsutilSwapBmsBytesEndian(buffer, sizeof(SmartbmsutilRunInfoLastBatteryValue) - 2);
 }
 
-void smartbmsutilPrintRunInfo(SmartbmsutilRunInfo runInfo) {
+void smartbmsutilPrintRunInfo(SmartbmsutilRunInfo *runInfo) {
   Serial.print("Battery voltages: ");
-  for (int i = 0; i < runInfo.countBatteryVoltages; i++) {
-    Serial.print(runInfo.batteryVoltages[i] / 1000.0, 3);
+  for (int i = 0; i < runInfo->countBatteryVoltages; i++) {
+    Serial.print(runInfo->batteryVoltages[i] / 1000.0, 3);
     Serial.print("V ");
   }
   Serial.println();
 
   Serial.print("Battery temps: ");
-  for (int i = 0; i < runInfo.countBatteryTemp; i++) {
-    Serial.print(runInfo.batteryTemp[i] - 40);
+  for (int i = 0; i < runInfo->countBatteryTemp; i++) {
+    Serial.print(runInfo->batteryTemp[i] - 40);
     Serial.print("°C ");
   }
   Serial.println();
 
   Serial.print("Max Cell voltage: ");
-  Serial.println(runInfo.maxCellVoltage / 1000.0, 3);
+  Serial.println(runInfo->maxCellVoltage / 1000.0, 3);
 
   Serial.print("Min Cell voltage: ");
-  Serial.println(runInfo.minCellVoltage / 1000.0, 3);
+  Serial.println(runInfo->minCellVoltage / 1000.0, 3);
 
   Serial.print("Current voltage: ");
-  Serial.println(runInfo.currentV / 10.0);
+  Serial.println(runInfo->currentV / 10.0);
 
   Serial.print("Current A: ");
-  Serial.println((runInfo.currentA - 30000) / 10.0);
+  Serial.println((runInfo->currentA - 30000) / 10.0);
 
   Serial.print("Current KW: ");
-  Serial.println(runInfo.currentKw / 1000.0, 3);
+  Serial.println(runInfo->currentKw / 1000.0, 3);
 }
