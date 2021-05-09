@@ -57,6 +57,12 @@ void drawVLine(int x, int y, int length, uint8_t color, int thickness) {
   }
 }
 
+void drawRect(int x, int y, int width, int height, int thickness) {
+  for (int i = 0; i < thickness; i++) {
+    epd_draw_rect(x + i, y + i, width - 2*i, height - 2*i, COLOR_BLACK, frameBuffer); 
+  }
+}
+
 void drawArrow(int xLine, int yLine, int length, bool toRight) {
   if (!toRight) {
     // right to left
@@ -77,20 +83,22 @@ void drawProgressBar(int x, int y, int width, int height, int value) {
     value = 0;
   }
   int fillWidth = (width * value) / 100;
-  epd_draw_rect(x, y, width, height, COLOR_BLACK, frameBuffer);
-  epd_fill_rect(x, y, fillWidth, height, COLOR_GREY, frameBuffer);
+  //epd_draw_rect(x, y, width, height, COLOR_BLACK, frameBuffer);
+  int lineWidth = 2;
+  drawRect(x, y, width, height, lineWidth);
+  epd_fill_rect(x + lineWidth, y + lineWidth, fillWidth - 2*lineWidth, height - 2*lineWidth, COLOR_GREY, frameBuffer);
 }
 
 /**
- * Draw a battery with a number inside
+ * Draw a battery with a text inside
  *
  * @param x x-coordinate of the upper left corner
  * @param y x-coordinate of the upper left corner
  * @param length Length of the battery in pixels
  * @param height Height of the battery in pixels
- * @param number Number to write in the middle of the battery
+ * @param text Text to write in the middle of the battery
  */
-void drawBattery(int x, int y, int length, int height, int number) {
+void drawBattery(int x, int y, int length, int height, char *text) {
   // draw battery (starts from upper left corner and goes clockwise)
   int quarterHeight = height / 4;
   int batteryCapLength = length / 10;
@@ -104,10 +112,22 @@ void drawBattery(int x, int y, int length, int height, int number) {
   drawHLine(x, y + height, length - batteryCapLength, COLOR_BLACK, lineWidth); // bottom horizontal line
   drawVLine(x, y, height, COLOR_BLACK, lineWidth); // left vertical line
 
-  // draw the number in the middle of battery
-  char numberText[2];
-  sprintf(numberText, "%ld", number);
-  drawString(8, x + length / 2 - 10, y + height / 2 + 8, numberText);
+  // draw the text in the middle of battery (adaptive text size)
+  int textSize = 8;
+  if (height > 30 && height < 40) {
+    textSize = 12;
+  } else if (height >= 40 && height < 50) {
+    textSize = 12;
+  } else if (height >= 50 && height < 60) {
+    textSize = 18;
+  } else if (height >= 60) {
+    textSize = 24;
+  }
+  int textHeight = 0;
+  int textWidth = 0;
+  getTextWidthAndHeight(textSize, text, &textWidth, &textHeight);
+  //drawString(textSize, x + (length - textWidth) / 2 - batteryCapLength + textWidth/2, y + height/2 + textHeight/2, text);
+  drawString(textSize, x + length/2 - textWidth/2, y + height/2 + textHeight/2, text);
 }
 
 void drawHeader(char *title) {
@@ -216,15 +236,14 @@ void drawBmsBatteries(SmartbmsutilRunInfo *runInfo) {
     for (int column = 0; column < countBatteriesPerRow; column++) { 
       int batteryX = startX + column * batteryFieldWidth;
       int batteryY = startY + row * batteryFieldHeight;
-      drawBattery(batteryX, batteryY, batteryLength, batteryHeight, batteryIndex + 1);
+      char numberText[2];
+      sprintf(numberText, "%ld", batteryIndex + 1);
+      drawBattery(batteryX, batteryY, batteryLength, batteryHeight, numberText);
       sprintf(text, "%.3f V", runInfo->batteryVoltages[batteryIndex] / 1000.0); 
       drawString(8, batteryX + (batteryLength - textWidth) / 2, batteryY + batteryHeight + textHeight + 10, text);
       batteryIndex++;
     }
   }
-
-  // TEST
-  drawBattery(startX, 200, 200, 70, 1);
 }
 
 void drawBmsTemperatures(SmartbmsutilRunInfo *runInfo) {
