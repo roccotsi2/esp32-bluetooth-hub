@@ -52,13 +52,12 @@ void smartbmsdemoFillSmartbmsutilRunInfo(SmartbmsutilRunInfo *currentSmartbmsuti
   }
  
   int currentKw = currentV * currentA;
-  int currentLoad = (currentKw / (MAX_CURRENT_VOLT * MAX_CURRENT_AMP * 1.0)) * 1000.0;
   int maxCellVoltage = MIN_CELL_VOLTAGE + ((COUNT_BATTERIES - 1) * 10);
   int averageCellVoltage = (MIN_CELL_VOLTAGE + maxCellVoltage) / 2;
 
   currentSmartbmsutilRunInfo->currentV = currentV * 10; // current V (in 0,1V)
   currentSmartbmsutilRunInfo->currentA = 30000 + (currentA * 10); // current A (offset: 30000 in 0,1A)
-  currentSmartbmsutilRunInfo->nowValuePercent = currentLoad; // NowValue in Percent (in 0,1 percent)
+  currentSmartbmsutilRunInfo->nowValuePercent = 775; // State of charge in percent (in 0,1 percent)
   currentSmartbmsutilRunInfo->maxCellVoltage = maxCellVoltage; // max cell voltage (in mV)
   currentSmartbmsutilRunInfo->minCellVoltage = MIN_CELL_VOLTAGE; // min cell voltage (in mV)
   currentSmartbmsutilRunInfo->dummy1 = 0;
