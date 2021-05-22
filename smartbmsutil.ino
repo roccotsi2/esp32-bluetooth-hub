@@ -117,7 +117,7 @@ void smartbmsutilDataReceived(byte *pData, size_t length) {
           // Packet is RunInfo (content length = 0x7C)
           SmartbmsutilRunInfo runInfo = smartbmsutilGetRunInfo(smartBmsReceiveBuffer, indexSmartBmsReceiveBuffer);
           displayDrawContentBms(&runInfo);
-          //smartbmsutilPrintRunInfo(&runInfo);
+          smartbmsutilPrintRunInfo(&runInfo);
         }
       }
 
@@ -204,6 +204,9 @@ void smartbmsutilPrintRunInfo(SmartbmsutilRunInfo *runInfo) {
 
   Serial.print("Current KW: ");
   Serial.println(runInfo->currentKw / 1000.0, 3);
+
+  Serial.print("SOC: : ");
+  Serial.println(runInfo->chargePercent / 10.0, 1);
 }
 
 bool smartbmsutilHasAlarmSet(SmartbmsutilRunInfo *runInfo) {

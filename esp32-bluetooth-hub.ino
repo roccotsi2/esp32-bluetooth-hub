@@ -25,7 +25,7 @@ const byte BUTTON_SHORT_PRESSED = 1;
 const byte BUTTON_LONG_PRESSED = 2;
 const int MILLIS_LONG_BUTTON_PRESS = 2000;
 
-uint8_t demoMode = 1;
+uint8_t demoMode = 0;
 
 uint8_t *frameBuffer;
 
