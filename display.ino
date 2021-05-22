@@ -83,10 +83,27 @@ void drawProgressBar(int x, int y, int width, int height, int value) {
     value = 0;
   }
   int fillWidth = (width * value) / 100;
-  //epd_draw_rect(x, y, width, height, COLOR_BLACK, frameBuffer);
   int lineWidth = 2;
   drawRect(x, y, width, height, lineWidth);
   epd_fill_rect(x + lineWidth, y + lineWidth, fillWidth - 2*lineWidth, height - 2*lineWidth, COLOR_GREY, frameBuffer);
+}
+
+void drawCheckbox(int x, int y, int width, int height, bool checked) {
+  if (checked) {
+    // filled rect
+    epd_fill_rect(x, y, width, height, COLOR_BLACK, frameBuffer);
+  } else {
+    // not filled rect
+    drawRect(x, y, width, height, 2);
+  }  
+}
+
+void drawTextWithCheckbox(int textSize, int x, int y, char *text, bool checked) {
+  drawString(textSize, x, y, text);
+  int textHeight = 0;
+  int textWidth = 0;
+  getTextWidthAndHeight(textSize, text, &textWidth, &textHeight);
+  drawCheckbox(x + textWidth + 20, y - textHeight + 2, textHeight, textHeight, checked);
 }
 
 /**
@@ -190,14 +207,16 @@ void drawBmsOverviewData(SmartbmsutilRunInfo *runInfo) {
 
   int textNormalHeight = 0;
   int textNormalWidth = 0;
-  int textDistanceVertical = 30;
   int textXStart = 5;
   int textYStart = 90;
   int leftMiddleX = EPD_WIDTH / 4;
   getTextWidthAndHeight(textSizeNormal, "Ladung:", &textNormalWidth, &textNormalHeight);
+  int heightHeader = 40;
+  int numRows = 8;
+  int textDistanceVertical = (EPD_HEIGHT - heightHeader - numRows * textNormalHeight) / numRows; // 30;
 
   drawString(textSizeNormal, textXStart, textYStart, "Ladung:");
-  drawProgressBar(leftMiddleX, textYStart - textNormalHeight + 5, leftMiddleX - textXStart, textNormalHeight, runInfo->nowValuePercent / 10);
+  drawProgressBar(leftMiddleX, textYStart - textNormalHeight + 5, leftMiddleX - textXStart, textNormalHeight, runInfo->chargePercent / 10);
 
   int currentY = textYStart + textNormalHeight + textDistanceVertical;
   drawString(textSizeNormal, textXStart, currentY, "Spannung:");
@@ -240,6 +259,14 @@ void drawBmsOverviewData(SmartbmsutilRunInfo *runInfo) {
   getTextWidthAndHeight(textSizeNormal, cycleText, &textNormalWidth, &textNormalHeight);
   drawString(textSizeNormal, leftMiddleX, currentY, cycleText);
   drawString(textSizeNormal, leftMiddleX + textNormalWidth + 10, currentY, cycleValueText);
+
+  currentY = currentY + textNormalHeight + textDistanceVertical;
+  drawTextWithCheckbox(textSizeNormal, textXStart, currentY, "Laden:", runInfo->cdmos == 1);
+
+  drawTextWithCheckbox(textSizeNormal, leftMiddleX, currentY, "Entladen:", runInfo->fdmos == 1);
+
+  currentY = currentY + textNormalHeight + textDistanceVertical;
+  drawTextWithCheckbox(textSizeNormal, textXStart, currentY, "Alarm:", smartbmsutilHasAlarmSet(runInfo));
 }
 
 void drawBmsBatteries(SmartbmsutilRunInfo *runInfo) {

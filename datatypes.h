@@ -7,7 +7,7 @@ typedef struct smartbmsutilRunInfo {
    int16_t batteryTemp[8];
    int16_t currentV;
    int16_t currentA;
-   int16_t nowValuePercent;
+   int16_t chargePercent;
    int16_t maxCellVoltage;
    int16_t minCellVoltage;
    int16_t dummy1;

@@ -205,3 +205,7 @@ void smartbmsutilPrintRunInfo(SmartbmsutilRunInfo *runInfo) {
   Serial.print("Current KW: ");
   Serial.println(runInfo->currentKw / 1000.0, 3);
 }
+
+bool smartbmsutilHasAlarmSet(SmartbmsutilRunInfo *runInfo) {
+  return runInfo->alarm1 != 0 || runInfo->alarm2 != 0 || runInfo->alarm3 != 0 || runInfo->alarm4 != 0;
+}
