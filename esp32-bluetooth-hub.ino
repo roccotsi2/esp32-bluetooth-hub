@@ -19,13 +19,15 @@
 #define COLOR_GREY    0x88
 #define COLOR_BLACK   0x00
 
+// 0: bluetooth connection will be established
+// 1: test values instead of bluetooth connection
+#define DEMO_MODE 0
+
 // define button pressed values
 const byte BUTTON_NOT_PRESSED = 0;
 const byte BUTTON_SHORT_PRESSED = 1;
 const byte BUTTON_LONG_PRESSED = 2;
 const int MILLIS_LONG_BUTTON_PRESS = 2000;
-
-uint8_t demoMode = 0;
 
 uint8_t *frameBuffer;
 
@@ -48,12 +50,12 @@ void setup() {
   displayInit();
   displayStartingMessage();
 
-  if (!demoMode) {
+  if (DEMO_MODE == 0) {
     Serial.println("Starting Arduino BLE Client application...");
     bluetoothSetupBluetoothBle();
   }
 
-  if (demoMode) {
+  if (DEMO_MODE == 1) {
     SmartbmsutilRunInfo runInfo;
     smartbmsdemoFillSmartbmsutilRunInfo(&runInfo);
     displayDrawContentBms(&runInfo);
@@ -61,7 +63,7 @@ void setup() {
 }
 
 void loop() {
-  if (!demoMode) {
+  if (DEMO_MODE == 0) {
     if (!bluetoothIsConnected()) {
       bluetoothTryConnect();
     }
