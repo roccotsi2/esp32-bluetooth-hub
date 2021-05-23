@@ -1,16 +1,24 @@
 // about 93 pixel per cm
 
+void clearFrameBuffer() {
+  memset(frameBuffer, 0xFF, EPD_WIDTH * EPD_HEIGHT / 2);
+}
+
 void displayInit() {
   epd_init();
   frameBuffer = (uint8_t *)ps_calloc(sizeof(uint8_t), EPD_WIDTH * EPD_HEIGHT / 2);
   if (!frameBuffer) Serial.println("Memory alloc failed!");
-  memset(frameBuffer, 0xFF, EPD_WIDTH * EPD_HEIGHT / 2);
+  clearFrameBuffer();
 }
 
 void updateDisplay() {
   epd_poweron();
-  epd_clear();
+  
+  //epd_clear();
+  epd_clear_area_cycles(epd_full_screen(), 2, 50); // use own parameter for clearings
+  
   epd_draw_grayscale_image(epd_full_screen(), frameBuffer);
+  
   epd_poweroff_all();
 }
 
@@ -76,6 +84,8 @@ void drawArrow(int xLine, int yLine, int length, bool toRight) {
 }
 
 void drawProgressBar(int x, int y, int width, int height, int value) {
+  Serial.print("drawProgressBar: ");
+  Serial.println(value);
   if (value > 100) {
     value = 100;
   }
@@ -271,7 +281,7 @@ void drawBmsOverviewData(SmartbmsutilRunInfo *runInfo) {
 
 void drawBmsBatteries(SmartbmsutilRunInfo *runInfo) {
   char text[10];
-  int countBatteriesPerRow = 4;
+  int countBatteriesPerRow = runInfo->countBatteryVoltages > 8 ? 4 : 2;
   int textHeight = 0;
   int textWidth = 0;
   getTextWidthAndHeight(8, "0.000 V", &textWidth, &textHeight);
@@ -323,10 +333,11 @@ void drawBmsTemperatures(SmartbmsutilRunInfo *runInfo) {
 }
 
 void displayDrawContentBms(SmartbmsutilRunInfo *runInfo) {
+  clearFrameBuffer();
   drawHeader("BMS");
   drawBmsSectionBorders();
   drawBmsOverviewData(runInfo);
   drawBmsBatteries(runInfo);
-  drawBmsTemperatures(runInfo);
+  drawBmsTemperatures(runInfo);  
   updateDisplay();
 }
