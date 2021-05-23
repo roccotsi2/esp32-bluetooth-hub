@@ -14,8 +14,8 @@ void displayInit() {
 void updateDisplay() {
   epd_poweron();
   
-  //epd_clear();
-  epd_clear_area_cycles(epd_full_screen(), 2, 50); // use own parameter for clearings
+  epd_clear();
+  //epd_clear_area_cycles(epd_full_screen(), 2, 50); // use own parameter for clearings
   
   epd_draw_grayscale_image(epd_full_screen(), frameBuffer);
   
@@ -81,6 +81,21 @@ void drawArrow(int xLine, int yLine, int length, bool toRight) {
     drawHLine(xLine, yLine, length, COLOR_BLACK, 5);
     epd_fill_triangle(xLine + 38, yLine + 2, xLine + 15, yLine - 8, xLine + 15, yLine + 12, COLOR_BLACK, frameBuffer);
   }
+}
+
+/**
+ * Draws a bluetooth symbol
+ * @param x: Top left corner x coordinate
+ * @param y: Top left corner y coordinate
+ * @param height: The height of the symbol
+ */
+void drawBluetoothSymbol(int x, int y, int height) {
+  int width = height / 2;
+  int xMiddle = x + width / 2;
+  epd_draw_triangle(xMiddle, y, x + width, y + height / 4, xMiddle, y + height / 2, COLOR_BLACK, frameBuffer); // upper triangle
+  epd_draw_triangle(xMiddle, y + height / 2, x + width, y + 3 * height / 4, xMiddle, y + height, COLOR_BLACK, frameBuffer); // lower triangle
+  epd_draw_line(x, y + height / 4, xMiddle, y + height / 2, COLOR_BLACK, frameBuffer); // upper line
+  epd_draw_line(x, y + 3 * height / 4, xMiddle, y + height / 2, COLOR_BLACK, frameBuffer); // lower line
 }
 
 void drawProgressBar(int x, int y, int width, int height, int value) {
@@ -181,6 +196,16 @@ void drawHeader(char *title) {
 
   // vertical line right from fifth button
   drawVLine(560, 0, 40, COLOR_BLACK, 2);
+
+  // BMS connection state
+  int textHeight = 0;
+  int textWidth = 0;
+  char textBmsConnection[] = "BMS:";
+  getTextWidthAndHeight(12, textBmsConnection, &textWidth, &textHeight);
+  drawString(12, 580, 27, textBmsConnection);
+  if (bluetoothIsConnected()) {
+    drawBluetoothSymbol(580 + textWidth + 10, 5, 30);
+  }
 }
 
 void drawBmsSectionBorders() {
@@ -349,6 +374,6 @@ void displayDrawContentBms(SmartbmsutilRunInfo *runInfo) {
   drawBmsSectionBorders();
   drawBmsOverviewData(runInfo);
   drawBmsBatteries(runInfo);
-  drawBmsTemperatures(runInfo);  
+  drawBmsTemperatures(runInfo);   
   updateDisplay();
 }
