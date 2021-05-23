@@ -45,11 +45,13 @@ void setup() {
 
   buttonsInit();
 
+  displayInit();
+  displayStartingMessage();
+
   if (!demoMode) {
     Serial.println("Starting Arduino BLE Client application...");
     bluetoothSetupBluetoothBle();
   }
-  displayInit();
 
   if (demoMode) {
     SmartbmsutilRunInfo runInfo;

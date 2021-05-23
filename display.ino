@@ -95,7 +95,7 @@ void drawProgressBar(int x, int y, int width, int height, int value) {
   int fillWidth = (width * value) / 100;
   int lineWidth = 2;
   drawRect(x, y, width, height, lineWidth);
-  epd_fill_rect(x + lineWidth, y + lineWidth, fillWidth - 2*lineWidth, height - 2*lineWidth, COLOR_GREY, frameBuffer);
+  epd_fill_rect(x + lineWidth, y + lineWidth, fillWidth - 2*lineWidth, height - 2*lineWidth, COLOR_BLACK, frameBuffer);
 }
 
 void drawCheckbox(int x, int y, int width, int height, bool checked) {
@@ -285,13 +285,13 @@ void drawBmsBatteries(SmartbmsutilRunInfo *runInfo) {
   int textHeight = 0;
   int textWidth = 0;
   getTextWidthAndHeight(8, "0.000 V", &textWidth, &textHeight);
-  int margin = 20;
+  int margin = 30;
   int batteryIndex = 0;
   int startX = EPD_WIDTH / 2 + margin;
   int startY = 60;
   int batteryHeight = 30;
   int batteryFieldWidth = (EPD_WIDTH / 2 - 2 * margin) / countBatteriesPerRow;
-  int batteryFieldHeight = batteryHeight + textHeight + 10;
+  int batteryFieldHeight = batteryHeight + textHeight + margin;
   int batteryLength = batteryFieldWidth - margin;
   int numRows = round(runInfo->countBatteryVoltages / countBatteriesPerRow);
   for (int row = 0; row < numRows; row++) {
@@ -330,6 +330,17 @@ void drawBmsTemperatures(SmartbmsutilRunInfo *runInfo) {
       temperatureIndex++;
     }
   }
+}
+
+void displayStartingMessage() {
+  clearFrameBuffer();
+  drawHeader("");
+  int textHeight = 0;
+  int textWidth = 0;
+  char text[] = "Starte...";
+  getTextWidthAndHeight(18, text, &textWidth, &textHeight);
+  drawString(18, EPD_WIDTH / 2 - textWidth / 2, EPD_HEIGHT / 2, text);
+  updateDisplay();
 }
 
 void displayDrawContentBms(SmartbmsutilRunInfo *runInfo) {
