@@ -1,13 +1,17 @@
-// The remote service we wish to connect to.
+// The remote service we wish to connect to (Smart BMS)
 static BLEUUID serviceUUID("0000fff0-0000-1000-8000-00805f9b34fb");
-// The characteristic of the remote service we are interested in.
-static BLEUUID    charUUID("0000fff1-0000-1000-8000-00805f9b34fb");
+// The characteristic of the remote service we are interested in for reading
+static BLEUUID    charReadUUID("0000fff1-0000-1000-8000-00805f9b34fb");
+// The characteristic of the remote service we are interested in for writing
+static BLEUUID    charWriteUUID("0000fff2-0000-1000-8000-00805f9b34fb");
 
 static boolean doConnect = false;
 static boolean connected = false;
 static boolean doScan = false;
-static BLERemoteCharacteristic* pRemoteCharacteristic;
+static BLERemoteCharacteristic* pRemoteCharacteristicRead;
+static BLERemoteCharacteristic* pRemoteCharacteristicWrite;
 static BLEAdvertisedDevice* myDevice;
+static BLEScan* pBLEScan;
 
 static void notifyCallback(BLERemoteCharacteristic* pBLERemoteCharacteristic, uint8_t* pData, size_t length, bool isNotify) {
   smartbmsutilDataReceived(pData, length);
@@ -15,12 +19,12 @@ static void notifyCallback(BLERemoteCharacteristic* pBLERemoteCharacteristic, ui
 
 class MyClientCallback : public BLEClientCallbacks {
   void onConnect(BLEClient* pclient) {
-    Serial.println("onConnect");
+    Serial.println("Connection established");
   }
 
   void onDisconnect(BLEClient* pclient) {
     connected = false;
-    Serial.println("onDisconnect");
+    Serial.println("Connection lost");    
   }
 };
 
@@ -48,25 +52,28 @@ bool connectToServer() {
     Serial.println(" - Found our service");
 
 
-    // Obtain a reference to the characteristic in the service of the remote BLE server.
-    pRemoteCharacteristic = pRemoteService->getCharacteristic(charUUID);
-    if (pRemoteCharacteristic == nullptr) {
+    // Obtain a reference to the characteristic for reading in the service of the remote BLE server.
+    pRemoteCharacteristicRead = pRemoteService->getCharacteristic(charReadUUID);
+    if (pRemoteCharacteristicRead == nullptr) {
       Serial.print("Failed to find our characteristic UUID: ");
-      Serial.println(charUUID.toString().c_str());
+      Serial.println(charReadUUID.toString().c_str());
       pClient->disconnect();
       return false;
     }
-    Serial.println(" - Found our characteristic");
+    Serial.println(" - Found our characteristic for reading");
 
-    // Read the value of the characteristic.
-    /*if(pRemoteCharacteristic->canRead()) {
-      std::string value = pRemoteCharacteristic->readValue();
-      Serial.print("The characteristic value was: ");
-      Serial.println(value.c_str());
-    }*/
+    // Obtain a reference to the characteristic for writing in the service of the remote BLE server.
+    pRemoteCharacteristicWrite = pRemoteService->getCharacteristic(charWriteUUID);
+    if (pRemoteCharacteristicWrite == nullptr) {
+      Serial.print("Failed to find our characteristic UUID: ");
+      Serial.println(charWriteUUID.toString().c_str());
+      pClient->disconnect();
+      return false;
+    }
+    Serial.println(" - Found our characteristic for writing");
 
-    if(pRemoteCharacteristic->canNotify())
-      pRemoteCharacteristic->registerForNotify(notifyCallback);
+    if(pRemoteCharacteristicRead->canNotify())
+      pRemoteCharacteristicRead->registerForNotify(notifyCallback);
 
     connected = true;
     return true;
@@ -97,12 +104,12 @@ void bluetoothSetupBluetoothBle() {
   // Retrieve a Scanner and set the callback we want to use to be informed when we
   // have detected a new device.  Specify that we want active scanning and start the
   // scan to run for 5 seconds.
-  BLEScan* pBLEScan = BLEDevice::getScan();
+  pBLEScan = BLEDevice::getScan();
   pBLEScan->setAdvertisedDeviceCallbacks(new MyAdvertisedDeviceCallbacks());
   pBLEScan->setInterval(1349);
   pBLEScan->setWindow(449);
   pBLEScan->setActiveScan(true);
-  pBLEScan->start(5, false);
+  pBLEScan->start(0, false);
 }
 
 bool bluetoothIsConnected() {
@@ -120,5 +127,20 @@ void bluetoothTryConnect() {
       Serial.println("We have failed to connect to the server; there is nothin more we will do.");
     }
     doConnect = false;
+  }
+}
+
+void bluetoothSendByteArray(byte *buffer, int dataLength) {
+  int sentBytes = 0;
+  int chunkSize = BLEDevice::getMTU() - 3;
+  byte tmpBuffer[chunkSize];
+  while (sentBytes < dataLength) {
+    int countBytes = (dataLength - sentBytes) > chunkSize ? chunkSize : (dataLength - sentBytes);
+    for (int i = 0; i < countBytes; i++) {
+      tmpBuffer[i] = buffer[sentBytes + i];
+    }
+    pRemoteCharacteristicWrite->writeValue(tmpBuffer, countBytes); 
+    //pRemoteCharacteristicWrite->notify();
+    sentBytes = sentBytes + countBytes;
   }
 }

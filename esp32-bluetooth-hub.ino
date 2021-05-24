@@ -67,8 +67,12 @@ void loop() {
     if (!bluetoothIsConnected()) {
       bluetoothTryConnect();
     }
+    if (bluetoothIsConnected()) {
+      // send request to get RunInfo
+      smartbmsutilSendCommandRunInfo();
+    }
     
-    delay(3000);
+    delay(10000);
   }
 
   /*int buttonPress = buttonsCheckButtonPressed(GPIO_1);

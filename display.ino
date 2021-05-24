@@ -99,8 +99,6 @@ void drawBluetoothSymbol(int x, int y, int height) {
 }
 
 void drawProgressBar(int x, int y, int width, int height, int value) {
-  Serial.print("drawProgressBar: ");
-  Serial.println(value);
   if (value > 100) {
     value = 100;
   }

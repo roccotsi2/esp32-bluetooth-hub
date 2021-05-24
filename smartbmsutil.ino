@@ -119,7 +119,7 @@ void smartbmsutilDataReceived(byte *pData, size_t length) {
           // Packet is RunInfo (content length = 0x7C)
           SmartbmsutilRunInfo runInfo = smartbmsutilGetRunInfo(smartBmsReceiveBuffer, indexSmartBmsReceiveBuffer);
           displayDrawContentBms(&runInfo);
-          smartbmsutilPrintRunInfo(&runInfo);
+          //smartbmsutilPrintRunInfo(&runInfo);
         }
       }
 
@@ -229,4 +229,14 @@ bool smartbmsutilIsCommandRunInfo(const char *buffer, int size) {
 
 bool smartbmsutilHasAlarmSet(SmartbmsutilRunInfo *runInfo) {
   return runInfo->alarm1 != 0 || runInfo->alarm2 != 0 || runInfo->alarm3 != 0 || runInfo->alarm4 != 0;
+}
+
+void smartbmsutilSendCommandRunInfo() {
+  Serial.println("Sending Command for RunInfo"); 
+  int size =  sizeof(COMMAND_RUN_INFO);
+  byte buffer[size];
+  for (int i = 0; i < size; i++) {
+    buffer[i] = (byte) COMMAND_RUN_INFO[i];
+  }
+  bluetoothSendByteArray(buffer, sizeof(buffer));
 }
