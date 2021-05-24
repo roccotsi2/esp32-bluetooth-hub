@@ -21,6 +21,8 @@
 byte smartBmsReceiveBuffer[RECEIVE_BUFFER_SIZE];
 uint16_t indexSmartBmsReceiveBuffer = 0;
 
+const char COMMAND_RUN_INFO[] = {0xD2, 0x03, 0x00, 0x00, 0x00, 0x3E, 0xD7, 0xB9};
+
 void smartbmsutilResetReceiveBuffer() {
   memset(smartBmsReceiveBuffer, 0, sizeof(smartBmsReceiveBuffer));
   indexSmartBmsReceiveBuffer = 0;
@@ -207,6 +209,22 @@ void smartbmsutilPrintRunInfo(SmartbmsutilRunInfo *runInfo) {
 
   Serial.print("SOC: : ");
   Serial.println(runInfo->chargePercent / 10.0, 1);
+}
+
+bool smartbmsutilArrayEquals(const char *buffer1, const char *buffer2, int size) {
+  for (int i = 0; i < size; i++) {
+    if (buffer1[i] != buffer2[i]) {
+      return false;
+    }
+  }
+  return true; // the arrays are equal up to index (size - 1)
+}
+
+bool smartbmsutilIsCommandRunInfo(const char *buffer, int size) {
+  if (size < sizeof(COMMAND_RUN_INFO)) {
+    return false;
+  }
+  return smartbmsutilArrayEquals(buffer, COMMAND_RUN_INFO, sizeof(COMMAND_RUN_INFO));
 }
 
 bool smartbmsutilHasAlarmSet(SmartbmsutilRunInfo *runInfo) {
