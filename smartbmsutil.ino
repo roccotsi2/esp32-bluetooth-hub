@@ -96,6 +96,12 @@ void smartbmsutilDataReceived(byte *pData, size_t length) {
     // nothing to do
     return;
   }
+
+  Serial.print("Received: ");
+  hexutilPrintByteArrayInHex(pData, length);
+
+  Serial.print("Num bytes received: ");
+  Serial.println(length);
   
   if (indexSmartBmsReceiveBuffer + length > RECEIVE_BUFFER_SIZE) {
     Serial.println("smartBmsReceiveBuffer too small. Resetting buffer.");
@@ -112,14 +118,21 @@ void smartbmsutilDataReceived(byte *pData, size_t length) {
 
   if (isReadHeader) {
     int contentLength = smartBmsReceiveBuffer[2];
+    Serial.print("Content length: ");
+    Serial.println(contentLength);
     if (contentLength + READ_PACKET_OVERHEAD_LENGTH == indexSmartBmsReceiveBuffer) {
       // packet is complete
+      Serial.println("Packet complete");
       if (smartbmsutilIsValidPacket(smartBmsReceiveBuffer, indexSmartBmsReceiveBuffer)) {
         // packet is valid
+        Serial.println("Packet valid");
         if (smartBmsReceiveBuffer[2] == 0x7C) {
           // Packet is RunInfo (content length = 0x7C)
+          Serial.println("Packet is RunInfo");
           SmartbmsutilRunInfo runInfo = smartbmsutilGetRunInfo(smartBmsReceiveBuffer, indexSmartBmsReceiveBuffer);
+          Serial.println("SmartbmsutilRunInfo created");
           displayDrawContentBms(&runInfo);
+          Serial.println("SmartbmsutilRunInfo drawed");
           //smartbmsutilPrintRunInfo(&runInfo);
         }
       }
@@ -259,4 +272,13 @@ void smartbmsutilSendCommandRunInfo() {
     buffer[i] = (byte) COMMAND_RUN_INFO[i];
   }
   bluetoothSendByteArray(buffer, sizeof(buffer));
+}
+
+void smartbmsutilReadRunInfo(byte *buffer, int size) {  
+  smartbmsutilSendCommandRunInfo();
+  delay(200);
+  std::string rxValue = bluetoothReadData();
+  for (int i = 0; i < rxValue.length(); i++) {
+    buffer[i] = rxValue[i];
+  }
 }

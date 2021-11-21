@@ -11,9 +11,9 @@
 #include "opensans18b.h"
 #include "opensans24b.h"
 
-#define GPIO_1        35
-#define GPIO_2        34
-#define GPIO_3        39
+#define GPIO_1        35 // <
+#define GPIO_2        34 // >
+#define GPIO_3        39 // SEL
 
 #define COLOR_WHITE   0xFF
 #define COLOR_GREY    0x88
@@ -29,7 +29,13 @@ const byte BUTTON_SHORT_PRESSED = 1;
 const byte BUTTON_LONG_PRESSED = 2;
 const int MILLIS_LONG_BUTTON_PRESS = 2000;
 
+// define timings
+const unsigned long INTERVAL_READ_BMS_MILLIS = 10000; // read BMS each minute
+
+// variables
 uint8_t *frameBuffer;
+unsigned long lastMillisMeasured = 0;
+int counter = 0;
 
 /*void displayPressedButton(int buttonNo, char *state) {
   epd_poweron();
@@ -53,6 +59,7 @@ void setup() {
   if (DEMO_MODE == 0) {
     Serial.println("Starting Arduino BLE Client application...");
     bluetoothSetupBluetoothBle();
+    bluetoothStartScan();
   }
 
   if (DEMO_MODE == 1) {
@@ -64,21 +71,35 @@ void setup() {
 
 void loop() {
   if (DEMO_MODE == 0) {
-    if (!bluetoothIsConnected()) {
-      bluetoothTryConnect();
+    unsigned long currentMillis = millis();
+    if (lastMillisMeasured == 0 || ((currentMillis - lastMillisMeasured) > INTERVAL_READ_BMS_MILLIS)) {
+      Serial.println("Fetch current RunInfo");
+      lastMillisMeasured = currentMillis;
+      if (!bluetoothIsConnected()) {
+        Serial.println("Not connected, try to connect");
+        bluetoothTryConnect();
+        counter++;
+      }
+
+      Serial.print("# Connects: ");
+      Serial.println(counter);
+
+      byte buffer[sizeof(SmartbmsutilRunInfo)];
+      smartbmsutilReadRunInfo(buffer, sizeof(buffer));
+      smartbmsutilDataReceived(buffer, sizeof(buffer));
+      
+      bluetoothDisconnect();
+
+      Serial.print("Free heap: ");
+      Serial.println(ESP.getFreeHeap());
     }
-    if (bluetoothIsConnected()) {
-      // send request to get RunInfo
-      smartbmsutilSendCommandRunInfo();
-    }
-    
-    delay(10000);
   }
 
-  /*int buttonPress = buttonsCheckButtonPressed(GPIO_1);
+  int buttonPress = buttonsCheckButtonPressed(GPIO_3);
   if (buttonPress == BUTTON_SHORT_PRESSED) {
-    displayPressedButton(1, "PRESSED ❬ ❭");
+    Serial.println("Sel pressed");
   } else if (buttonPress == BUTTON_LONG_PRESSED) {
-    displayPressedButton(1, "LONG PRESSED");
-  }*/
+    Serial.println("Sel long pressed");
+    bluetoothDisconnect();
+  }
 }

@@ -15,7 +15,7 @@ void updateDisplay() {
   epd_poweron();
   
   epd_clear();
-  //epd_clear_area_cycles(epd_full_screen(), 2, 50); // use own parameter for clearings
+  //epd_clear_area_cycles(epd_full_screen(), 4, 50); // use own parameter for clearings
   
   epd_draw_grayscale_image(epd_full_screen(), frameBuffer);
   
