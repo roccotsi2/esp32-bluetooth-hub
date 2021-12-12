@@ -34,7 +34,18 @@ bool connectToServer() {
     Serial.println(myDevice->getAddress().toString().c_str());
 
     // Connect to the remove BLE Server.
-    pClient->connect(myDevice);  // if you pass BLEAdvertisedDevice instead of address, it will be recognized type of peer device address (public or private)
+    int count = 0;
+    boolean success = false;
+    while (count < 5 && !success) {
+      delay(100);
+      success = pClient->connect(myDevice);  // if you pass BLEAdvertisedDevice instead of address, it will be recognized type of peer device address (public or private)
+      count++;
+    }
+    if (!success) {
+      Serial.println("Unable to establish connection");
+      return false;
+    }
+    
     Serial.println(" - Connected to server");
 
     // Obtain a reference to the service we are after in the remote BLE server.
