@@ -85,8 +85,12 @@ void loop() {
       Serial.println(counter);
 
       byte buffer[sizeof(SmartbmsutilRunInfo)];
-      smartbmsutilReadRunInfo(buffer, sizeof(buffer));
-      smartbmsutilDataReceived(buffer, sizeof(buffer));
+      memset(buffer, 0, sizeof(buffer)); // clear array
+      boolean success = smartbmsutilReadRunInfo(buffer, sizeof(buffer));
+      if (success) {
+        // process data only if successful received
+        smartbmsutilDataReceived(buffer, sizeof(buffer));
+      }
       
       bluetoothDisconnect();
 

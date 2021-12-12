@@ -17,12 +17,15 @@
 #define READ_PACKET_HEADER_LENGTH 3 // the number of bytes for header of read packets (header, content length)
 #define READ_PACKET_CRC_LENGTH 2 // the number of bytes for CRC of read packets
 #define READ_PACKET_OVERHEAD_LENGTH  READ_PACKET_HEADER_LENGTH + READ_PACKET_CRC_LENGTH // the number of bytes for overhead (header, content length, CRC)
+#define READ_RETRIES 5 // the number of retries until reading value is aborted
 
 byte smartBmsReceiveBuffer[RECEIVE_BUFFER_SIZE];
 uint16_t indexSmartBmsReceiveBuffer = 0;
 
 const char COMMAND_RUN_INFO[] = {0xD2, 0x03, 0x00, 0x00, 0x00, 0x3E, 0xD7, 0xB9};
 const char COMMAND_SET_DATA_INFO[] = {0xD2, 0x03, 0x00, 0x80, 0x00, 0x29, 0x96, 0x5F};
+
+const int SIZE_RUN_INFO = sizeof(SmartbmsutilRunInfo);
 
 void smartbmsutilResetReceiveBuffer() {
   memset(smartBmsReceiveBuffer, 0, sizeof(smartBmsReceiveBuffer));
@@ -135,6 +138,8 @@ void smartbmsutilDataReceived(byte *pData, size_t length) {
           Serial.println("SmartbmsutilRunInfo drawed");
           //smartbmsutilPrintRunInfo(&runInfo);
         }
+      } else {
+        Serial.println("Packet is invalid");
       }
 
       // reset smartBmsReceiveBuffer
@@ -274,11 +279,31 @@ void smartbmsutilSendCommandRunInfo() {
   bluetoothSendByteArray(buffer, sizeof(buffer));
 }
 
-void smartbmsutilReadRunInfo(byte *buffer, int size) {  
+boolean smartbmsutilReadRunInfo(byte *buffer, int size) {  
+  // send command to read Run Info
   smartbmsutilSendCommandRunInfo();
-  delay(200);
-  std::string rxValue = bluetoothReadData();
-  for (int i = 0; i < rxValue.length(); i++) {
-    buffer[i] = rxValue[i];
+
+  // read result
+  int numRead = 0;
+  int count = 0;
+  std::string rxValue;
+  while (count < READ_RETRIES && numRead != SIZE_RUN_INFO) {
+    delay(500);
+    rxValue = bluetoothReadData();
+    numRead = rxValue.length();
+    Serial.print("numRead = ");
+    Serial.println(numRead);
+    count++;
+  }
+
+  if (numRead == SIZE_RUN_INFO) {
+    // copy to buffer as length is correct
+    for (int i = 0; i < rxValue.length(); i++) {
+        buffer[i] = rxValue[i];
+    }
+    return true;
+  } else {
+    Serial.println("Unable to read correct RunInfo");
+    return false;
   }
 }
