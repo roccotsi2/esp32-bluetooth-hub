@@ -269,6 +269,9 @@ bool smartbmsutilHasAlarmSet(SmartbmsutilRunInfo *runInfo) {
   return runInfo->alarm1 != 0 || runInfo->alarm2 != 0 || runInfo->alarm3 != 0 || runInfo->alarm4 != 0;
 }
 
+/**
+ * Send command to get RunInfo data (non blocking)
+ */
 void smartbmsutilSendCommandRunInfo() {
   Serial.println("Sending Command for RunInfo"); 
   int size =  sizeof(COMMAND_RUN_INFO);
@@ -279,6 +282,9 @@ void smartbmsutilSendCommandRunInfo() {
   bluetoothSendByteArray(buffer, sizeof(buffer));
 }
 
+/**
+ * Send command to get RunInfo data and read the result (blocking)
+ */
 boolean smartbmsutilReadRunInfo(byte *buffer, int size) {  
   // send command to read Run Info
   smartbmsutilSendCommandRunInfo();
