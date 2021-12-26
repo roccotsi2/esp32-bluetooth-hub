@@ -134,7 +134,7 @@ void smartbmsutilDataReceived(byte *pData, size_t length) {
           Serial.println("Packet is RunInfo");
           SmartbmsutilRunInfo runInfo = smartbmsutilGetRunInfo(smartBmsReceiveBuffer, indexSmartBmsReceiveBuffer);
           Serial.println("SmartbmsutilRunInfo created");
-          displayDrawContentBms(&runInfo);
+          displayDrawBmsAndGasOverview(&runInfo);
           Serial.println("SmartbmsutilRunInfo drawed");
           //smartbmsutilPrintRunInfo(&runInfo);
         }

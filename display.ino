@@ -206,37 +206,32 @@ void drawHeader(char *title) {
   }
 }
 
-void drawBmsSectionBorders() {
+void drawBmsSectionBorders(boolean devideRightArea) {
   // divide in left and right area
   drawVLine(EPD_WIDTH / 2, 40, EPD_HEIGHT - 40, COLOR_BLACK, 2);
 
-  // devide right area in top and bottom area
-  drawHLine(EPD_WIDTH / 2, 340, EPD_WIDTH / 2, COLOR_BLACK, 2);
+  if (devideRightArea) {
+    // devide right area in top and bottom area
+    drawHLine(EPD_WIDTH / 2, 340, EPD_WIDTH / 2, COLOR_BLACK, 2);
+  }
 }
 
-void drawBmsOverviewData(SmartbmsutilRunInfo *runInfo) {
+void drawBmsOverviewData(SmartbmsutilRunInfo *runInfo, boolean individualCells) {
+  int currentCharge = runInfo->chargePercent / 10;
   float currentV = runInfo->currentV / 10.0;
   float currentA = (runInfo->currentA - 30000) / 10.0;
   float currentKw = runInfo->currentKw / 1000.0;
-  float zMin = round(runInfo->minCellVoltage / 10.0) / 100.0;
-  float zMax = round(runInfo->maxCellVoltage / 10.0) / 100.0;
-  float zAvg = round(runInfo->avgVoltage / 10.0) / 100.0;
   int textSizeNormal = 18;
+  int textSizeMiddle = 12;
   int textSizeSmall = 8;
+  char currentChargeText[10];
+  sprintf(currentChargeText, "%d %%", currentCharge);
   char currentVText[10];
   sprintf(currentVText, "%.1f V", currentV);
   char currentAText[10];
   sprintf(currentAText, "%.1f A", currentA);
   char currentKwText[10];
   sprintf(currentKwText, "%.3f kW", currentKw);
-  char zMinText[10];
-  sprintf(zMinText, "%.2f V", zMin);
-  char zMaxText[10];
-  sprintf(zMaxText, "%.2f V", zMax);
-  char zAvgText[10];
-  sprintf(zAvgText, "%.2f V", zAvg);
-  char cycleValueText[10];
-  sprintf(cycleValueText, "%ld", runInfo->cycle);
 
   int textNormalHeight = 0;
   int textNormalWidth = 0;
@@ -249,7 +244,8 @@ void drawBmsOverviewData(SmartbmsutilRunInfo *runInfo) {
   int textDistanceVertical = (EPD_HEIGHT - heightHeader - numRows * textNormalHeight) / numRows; // 30;
 
   drawString(textSizeNormal, textXStart, textYStart, "Ladung:");
-  drawProgressBar(leftMiddleX, textYStart - textNormalHeight + 5, leftMiddleX - textXStart, textNormalHeight, runInfo->chargePercent / 10);
+  //drawProgressBar(leftMiddleX, textYStart - textNormalHeight + 5, leftMiddleX - textXStart, textNormalHeight, runInfo->chargePercent / 10);
+  drawString(textSizeNormal, leftMiddleX, textYStart, currentChargeText);
 
   int currentY = textYStart + textNormalHeight + textDistanceVertical;
   drawString(textSizeNormal, textXStart, currentY, "Spannung:");
@@ -263,37 +259,87 @@ void drawBmsOverviewData(SmartbmsutilRunInfo *runInfo) {
   drawString(textSizeNormal, textXStart, currentY, "Leistung:");
   drawString(textSizeNormal, leftMiddleX, currentY, currentKwText);
 
-  char zText[] = "Z";
-  int zTextWidth = 0;
-  int zTextHeight = 0;
-  getTextWidthAndHeight(textSizeNormal, zText, &zTextWidth, &zTextHeight);
-  char minText[] = "min";
-  int textSmallHeight = 0;
-  int textSmallWidth = 0;
-  getTextWidthAndHeight(textSizeSmall, minText, &textSmallWidth, &textSmallHeight);
-  currentY = currentY + textNormalHeight + textDistanceVertical;
-  drawString(textSizeNormal, textXStart, currentY, "Z");
-  drawString(textSizeSmall, textXStart + zTextWidth, currentY + 10, "min");
-  drawString(textSizeNormal, textXStart + zTextWidth + textSmallWidth, currentY, ":");
-  drawString(textSizeNormal, textXStart + zTextWidth + textSmallWidth + 20, currentY, zMinText);
+  if (individualCells) {
+    // draw individual cell info
+    char zText[] = "Z";
+    int zTextWidth = 0;
+    int zTextHeight = 0;
+    getTextWidthAndHeight(textSizeNormal, zText, &zTextWidth, &zTextHeight);
+    char numberText[] = "2";
+    int textSmallHeight = 0;
+    int textSmallWidth = 0;
+    getTextWidthAndHeight(textSizeSmall, numberText, &textSmallWidth, &textSmallHeight);
 
-  drawString(textSizeNormal, leftMiddleX, currentY, "Z");
-  drawString(textSizeSmall, leftMiddleX + zTextWidth, currentY + 10, "max");
-  drawString(textSizeNormal, leftMiddleX + zTextWidth + textSmallWidth, currentY, ":");
-  drawString(textSizeNormal, leftMiddleX + zTextWidth + textSmallWidth + 20, currentY, zMaxText);
+    char text[20];
+    int countBatteriesPerRow = 2;
+    int numRows = round(runInfo->countBatteryVoltages / countBatteriesPerRow);
+    int batteryIndex = 0;
+    currentY = currentY + textNormalHeight + textDistanceVertical;
+    for (int row = 0; row < numRows; row++) {
+      for (int column = 0; column < countBatteriesPerRow; column++) { 
+        int x = textXStart + column * leftMiddleX;
+        drawString(textSizeNormal, x, currentY, "Z");
+        sprintf(text, "%d", batteryIndex + 1);
+        drawString(textSizeSmall, x + zTextWidth, currentY, text);
+        if (runInfo->countBatteryTemp > batteryIndex) {
+          // voltage + temp
+          sprintf(text, "%.3f V (%d °C)", runInfo->batteryVoltages[batteryIndex] / 1000.0, runInfo->batteryTemp[batteryIndex] - 40); 
+        } else {
+          // only voltage
+          sprintf(text, "%.3f V", runInfo->batteryVoltages[batteryIndex] / 1000.0); 
+        }
+        drawString(textSizeMiddle, x + zTextWidth + textSmallWidth + 10, currentY, text);
+        batteryIndex++;
+      }
+      currentY = currentY + textNormalHeight + textDistanceVertical;
+    }
+  } else {
+    // draw cell min/max/avg instead of individual cell info
+    float zMin = round(runInfo->minCellVoltage / 10.0) / 100.0;
+    float zMax = round(runInfo->maxCellVoltage / 10.0) / 100.0;
+    float zAvg = round(runInfo->avgVoltage / 10.0) / 100.0;
+    char zMinText[10];
+    sprintf(zMinText, "%.2f V", zMin);
+    char zMaxText[10];
+    sprintf(zMaxText, "%.2f V", zMax);
+    char zAvgText[10];
+    sprintf(zAvgText, "%.2f V", zAvg);
+    char cycleValueText[10];
+    sprintf(cycleValueText, "%ld", runInfo->cycle);
+  
+    char zText[] = "Z";
+    int zTextWidth = 0;
+    int zTextHeight = 0;
+    getTextWidthAndHeight(textSizeNormal, zText, &zTextWidth, &zTextHeight);
+    char minText[] = "min";
+    int textSmallHeight = 0;
+    int textSmallWidth = 0;
+    getTextWidthAndHeight(textSizeSmall, minText, &textSmallWidth, &textSmallHeight);
+    currentY = currentY + textNormalHeight + textDistanceVertical;
+    drawString(textSizeNormal, textXStart, currentY, "Z");
+    drawString(textSizeSmall, textXStart + zTextWidth, currentY + 10, "min");
+    drawString(textSizeNormal, textXStart + zTextWidth + textSmallWidth, currentY, ":");
+    drawString(textSizeNormal, textXStart + zTextWidth + textSmallWidth + 20, currentY, zMinText);
+  
+    drawString(textSizeNormal, leftMiddleX, currentY, "Z");
+    drawString(textSizeSmall, leftMiddleX + zTextWidth, currentY + 10, "max");
+    drawString(textSizeNormal, leftMiddleX + zTextWidth + textSmallWidth, currentY, ":");
+    drawString(textSizeNormal, leftMiddleX + zTextWidth + textSmallWidth + 20, currentY, zMaxText);
+  
+    currentY = currentY + textNormalHeight + textDistanceVertical;
+    drawString(textSizeNormal, textXStart, currentY, "Z");
+    drawString(textSizeSmall, textXStart + zTextWidth, currentY + 10, "avg");
+    drawString(textSizeNormal, textXStart + zTextWidth + textSmallWidth, currentY, ":");
+    drawString(textSizeNormal, textXStart + zTextWidth + textSmallWidth + 20, currentY, zAvgText);
+  
+    char cycleText[] = "Zyklen:";
+    getTextWidthAndHeight(textSizeNormal, cycleText, &textNormalWidth, &textNormalHeight);
+    drawString(textSizeNormal, leftMiddleX, currentY, cycleText);
+    drawString(textSizeNormal, leftMiddleX + textNormalWidth + 10, currentY, cycleValueText);
 
-  currentY = currentY + textNormalHeight + textDistanceVertical;
-  drawString(textSizeNormal, textXStart, currentY, "Z");
-  drawString(textSizeSmall, textXStart + zTextWidth, currentY + 10, "avg");
-  drawString(textSizeNormal, textXStart + zTextWidth + textSmallWidth, currentY, ":");
-  drawString(textSizeNormal, textXStart + zTextWidth + textSmallWidth + 20, currentY, zAvgText);
+    currentY = currentY + textNormalHeight + textDistanceVertical;
+  }
 
-  char cycleText[] = "Zyklen:";
-  getTextWidthAndHeight(textSizeNormal, cycleText, &textNormalWidth, &textNormalHeight);
-  drawString(textSizeNormal, leftMiddleX, currentY, cycleText);
-  drawString(textSizeNormal, leftMiddleX + textNormalWidth + 10, currentY, cycleValueText);
-
-  currentY = currentY + textNormalHeight + textDistanceVertical;
   drawTextWithCheckbox(textSizeNormal, textXStart, currentY, "Laden:", runInfo->cdmos == 1);
 
   drawTextWithCheckbox(textSizeNormal, leftMiddleX, currentY, "Entladen:", runInfo->fdmos == 1);
@@ -302,7 +348,7 @@ void drawBmsOverviewData(SmartbmsutilRunInfo *runInfo) {
   drawTextWithCheckbox(textSizeNormal, textXStart, currentY, "Alarm:", smartbmsutilHasAlarmSet(runInfo));
 }
 
-void drawBmsBatteries(SmartbmsutilRunInfo *runInfo) {
+void drawBmsBatteriesOnRightSide(SmartbmsutilRunInfo *runInfo) {
   char text[10];
   int countBatteriesPerRow = runInfo->countBatteryVoltages > 8 ? 4 : 2;
   int textHeight = 0;
@@ -366,12 +412,20 @@ void displayStartingMessage() {
   updateDisplay();
 }
 
-void displayDrawContentBms(SmartbmsutilRunInfo *runInfo) {
+void displayDrawContentBmsDetail(SmartbmsutilRunInfo *runInfo) {
   clearFrameBuffer();
   drawHeader("BMS");
-  drawBmsSectionBorders();
-  drawBmsOverviewData(runInfo);
-  drawBmsBatteries(runInfo);
+  drawBmsSectionBorders(true);
+  drawBmsOverviewData(runInfo, false);
+  drawBmsBatteriesOnRightSide(runInfo);
   drawBmsTemperatures(runInfo);   
+  updateDisplay();
+}
+
+void displayDrawBmsAndGasOverview(SmartbmsutilRunInfo *runInfo) {
+  clearFrameBuffer();
+  drawHeader("");
+  drawBmsSectionBorders(false);
+  drawBmsOverviewData(runInfo, true);
   updateDisplay();
 }

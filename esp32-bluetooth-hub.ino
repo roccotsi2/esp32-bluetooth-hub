@@ -65,7 +65,7 @@ void setup() {
   if (DEMO_MODE == 1) {
     SmartbmsutilRunInfo runInfo;
     smartbmsdemoFillSmartbmsutilRunInfo(&runInfo);
-    displayDrawContentBms(&runInfo);
+    displayDrawContentBmsDetail(&runInfo);
   }
 }
 
