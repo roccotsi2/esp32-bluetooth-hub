@@ -401,6 +401,39 @@ void drawBmsTemperatures(SmartbmsutilRunInfo *runInfo) {
   }
 }
 
+void drawGasData(GasData *gasData) {
+  int textXStart = EPD_WIDTH / 2 + 10;
+  int textYStart = 90;
+  int heightHeader = 40;
+  int textSizeNormal = 18;
+  int textNormalHeight = 0;
+  int textNormalWidth = 0;
+  getTextWidthAndHeight(textSizeNormal, "Verbrauch:", &textNormalWidth, &textNormalHeight);
+  int numRows = 8;
+  int textDistanceVertical = (EPD_HEIGHT - heightHeader - numRows * textNormalHeight) / numRows;
+  char text[15];
+
+  int currentY = textYStart;
+  drawString(textSizeNormal, textXStart, currentY, "Füllung:");
+  sprintf(text, "%d %%", gasData->fillingLevelPercent);
+  drawString(textSizeNormal, textXStart + textNormalWidth + 20, currentY, text);
+  
+  currentY = currentY + textNormalHeight + textDistanceVertical;
+  drawString(textSizeNormal, textXStart, currentY, "Netto:");
+  sprintf(text, "%d g", gasData->nettoWeightGram);
+  drawString(textSizeNormal, textXStart + textNormalWidth + 20, currentY, text);
+  
+  currentY = currentY + textNormalHeight + textDistanceVertical;
+  drawString(textSizeNormal, textXStart, currentY, "Verbrauch:");
+  sprintf(text, "%d g/Tag", gasData->usagePerDayGram);
+  drawString(textSizeNormal, textXStart + textNormalWidth + 20, currentY, text);
+  
+  currentY = currentY + textNormalHeight + textDistanceVertical;
+  drawString(textSizeNormal, textXStart, currentY, "Restzeit:");
+  sprintf(text, "%d Tag(e)", gasData->remainingDays);
+  drawString(textSizeNormal, textXStart + textNormalWidth + 20, currentY, text);
+}
+
 void displayStartingMessage() {
   clearFrameBuffer();
   drawHeader("");
@@ -422,10 +455,11 @@ void displayDrawContentBmsDetail(SmartbmsutilRunInfo *runInfo) {
   updateDisplay();
 }
 
-void displayDrawBmsAndGasOverview(SmartbmsutilRunInfo *runInfo) {
+void displayDrawBmsAndGasOverview(SmartbmsutilRunInfo *runInfo, GasData *gasData) {
   clearFrameBuffer();
   drawHeader("");
   drawBmsSectionBorders(false);
   drawBmsOverviewData(runInfo, true);
-  updateDisplay();
+  drawGasData(gasData);
+  updateDisplay(); 
 }

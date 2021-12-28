@@ -36,6 +36,8 @@ const unsigned long INTERVAL_READ_BMS_MILLIS = 10000; // read BMS each minute
 uint8_t *frameBuffer;
 unsigned long lastMillisMeasured = 0;
 int counter = 0;
+SmartbmsutilRunInfo _currentSmartbmsutilRunInfo;
+GasData _gasData;
 
 /*void displayPressedButton(int buttonNo, char *state) {
   epd_poweron();
@@ -47,6 +49,22 @@ int counter = 0;
   writeln((GFXfont *)&FiraSans, buttonText, &cursor_x, &cursor_y, NULL);
   epd_poweroff();
 }*/
+
+void fetchAndDisplayBmsData() {
+  Serial.println("Fetch current RunInfo");
+  if (!bluetoothIsConnected()) {
+    Serial.println("Not connected, try to connect");
+    bluetoothTryConnect();
+    counter++;
+  }
+
+  // Serial.print("# Connects: ");
+  // Serial.println(counter);
+
+  smartbmsutilSendCommandRunInfo();
+  delay(5000);
+  bluetoothDisconnect();
+}
 
 void setup() {
   Serial.begin(115200);
@@ -67,36 +85,20 @@ void setup() {
     smartbmsdemoFillSmartbmsutilRunInfo(&runInfo);
     displayDrawContentBmsDetail(&runInfo);
   }
+
+  // TODO: remove demo scale data
+  _gasData.fillingLevelPercent = 78;
+  _gasData.nettoWeightGram = (11000 * _gasData.fillingLevelPercent) / 100;
+  _gasData.remainingDays = 12;
+  _gasData.usagePerDayGram = _gasData.nettoWeightGram / _gasData.remainingDays;
 }
 
 void loop() {
   if (DEMO_MODE == 0) {
     unsigned long currentMillis = millis();
     if (lastMillisMeasured == 0 || ((currentMillis - lastMillisMeasured) > INTERVAL_READ_BMS_MILLIS)) {
-      Serial.println("Fetch current RunInfo");
       lastMillisMeasured = currentMillis;
-      if (!bluetoothIsConnected()) {
-        Serial.println("Not connected, try to connect");
-        bluetoothTryConnect();
-        counter++;
-      }
-
-      Serial.print("# Connects: ");
-      Serial.println(counter);
-
-      smartbmsutilSendCommandRunInfo();
-
-      /*byte buffer[sizeof(SmartbmsutilRunInfo)];
-      memset(buffer, 0, sizeof(buffer)); // clear array
-      boolean success = smartbmsutilReadRunInfo(buffer, sizeof(buffer));
-      if (success) {
-        // process data only if successful received
-        smartbmsutilDataReceived(buffer, sizeof(buffer));
-      }*/
-
-      delay(3000);
-      
-      bluetoothDisconnect();
+      fetchAndDisplayBmsData();
 
       Serial.print("Free heap: ");
       Serial.println(ESP.getFreeHeap());

@@ -132,9 +132,9 @@ void smartbmsutilDataReceived(byte *pData, size_t length) {
         if (smartBmsReceiveBuffer[2] == 0x7C) {
           // Packet is RunInfo (content length = 0x7C)
           Serial.println("Packet is RunInfo");
-          SmartbmsutilRunInfo runInfo = smartbmsutilGetRunInfo(smartBmsReceiveBuffer, indexSmartBmsReceiveBuffer);
+          _currentSmartbmsutilRunInfo = smartbmsutilGetRunInfo(smartBmsReceiveBuffer, indexSmartBmsReceiveBuffer);
           Serial.println("SmartbmsutilRunInfo created");
-          displayDrawBmsAndGasOverview(&runInfo);
+          displayDrawBmsAndGasOverview(&_currentSmartbmsutilRunInfo, &_gasData);
           Serial.println("SmartbmsutilRunInfo drawed");
           //smartbmsutilPrintRunInfo(&runInfo);
         }

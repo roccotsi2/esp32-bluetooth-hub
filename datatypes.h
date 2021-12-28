@@ -62,3 +62,16 @@ typedef struct smartbmsutilSetDataInfo {
    int8_t crcHigh;
    int8_t crcLow;
 } __attribute__ ((packed)) SmartbmsutilSetDataInfo;
+
+//#pragma pack(1)
+typedef struct scaleCurrentWeight {
+   int16_t currentBruttoGram;
+} __attribute__ ((packed)) ScaleCurrentWeight;
+
+//#pragma pack(1)
+typedef struct gasData {
+   int8_t fillingLevelPercent;
+   int16_t nettoWeightGram;
+   int16_t usagePerDayGram;
+   int16_t remainingDays;
+} __attribute__ ((packed)) GasData;
