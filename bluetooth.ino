@@ -11,11 +11,17 @@ static boolean doScan = false;
 static BLERemoteCharacteristic* pRemoteCharacteristicRead;
 static BLERemoteCharacteristic* pRemoteCharacteristicWrite;
 static BLEAdvertisedDevice* myDevice;
+static BLEAdvertisedDevice* myDevices[2];
 static BLEScan* pBLEScan;
 static BLEClient* pClient;
+int currentDeviceNo = 0;
+int countDevices = 0;
 
 static void notifyCallback(BLERemoteCharacteristic* pBLERemoteCharacteristic, uint8_t* pData, size_t length, bool isNotify) {
-  smartbmsutilDataReceived(pData, length);
+  if (smartbmsutilDataReceived(pData, length)) {
+    // disconnect after data was successful read
+    bluetoothDisconnect();
+  }
 }
 
 class MyClientCallback : public BLEClientCallbacks {
@@ -36,8 +42,10 @@ bool connectToServer() {
     // Connect to the remove BLE Server.
     int count = 0;
     boolean success = false;
-    while (count < 5 && !success) {
+    unsigned long lastMillis = millis();
+    while (count < 5 && !success && (millis() - lastMillis < 29000)) { // connection timeout is 30 sec (do not retry if connection timed out)
       delay(100);
+      //success = pClient->connect(BLEAddress("3c:61:05:31:5d:7a"));  // if you pass BLEAdvertisedDevice instead of address, it will be recognized type of peer device address (public or private)
       success = pClient->connect(myDevice);  // if you pass BLEAdvertisedDevice instead of address, it will be recognized type of peer device address (public or private)
       count++;
     }

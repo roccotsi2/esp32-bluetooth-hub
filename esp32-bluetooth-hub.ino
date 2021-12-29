@@ -30,7 +30,7 @@ const byte BUTTON_LONG_PRESSED = 2;
 const int MILLIS_LONG_BUTTON_PRESS = 2000;
 
 // define timings
-const unsigned long INTERVAL_READ_BMS_MILLIS = 10000; // read BMS each minute
+const unsigned long INTERVAL_READ_BMS_MILLIS = 5000; // read BMS each minute
 
 // variables
 uint8_t *frameBuffer;
@@ -50,7 +50,7 @@ GasData _gasData;
   epd_poweroff();
 }*/
 
-void fetchAndDisplayBmsData() {
+void fetchAndDisplayBmsDataAsync() {
   Serial.println("Fetch current RunInfo");
   if (!bluetoothIsConnected()) {
     Serial.println("Not connected, try to connect");
@@ -58,12 +58,12 @@ void fetchAndDisplayBmsData() {
     counter++;
   }
 
-  // Serial.print("# Connects: ");
-  // Serial.println(counter);
+  Serial.print("# Connects: ");
+  Serial.println(counter);
 
-  smartbmsutilSendCommandRunInfo();
-  delay(5000);
-  bluetoothDisconnect();
+  if (bluetoothIsConnected()) {
+    smartbmsutilSendCommandRunInfo();
+  }
 }
 
 void setup() {
@@ -98,7 +98,9 @@ void loop() {
     unsigned long currentMillis = millis();
     if (lastMillisMeasured == 0 || ((currentMillis - lastMillisMeasured) > INTERVAL_READ_BMS_MILLIS)) {
       lastMillisMeasured = currentMillis;
-      fetchAndDisplayBmsData();
+      fetchAndDisplayBmsDataAsync();
+
+      delay(5000);
 
       Serial.print("Free heap: ");
       Serial.println(ESP.getFreeHeap());

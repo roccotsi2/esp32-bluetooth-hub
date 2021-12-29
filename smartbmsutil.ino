@@ -94,10 +94,10 @@ void smartbmsutilSwapBmsBytesEndian(byte *buffer, int size) {
   }
 }
 
-void smartbmsutilDataReceived(byte *pData, size_t length) {
+bool smartbmsutilDataReceived(byte *pData, size_t length) {
   if (length == 0) {
     // nothing to do
-    return;
+    return false;
   }
 
   Serial.print("Received: ");
@@ -109,7 +109,7 @@ void smartbmsutilDataReceived(byte *pData, size_t length) {
   if (indexSmartBmsReceiveBuffer + length > RECEIVE_BUFFER_SIZE) {
     Serial.println("smartBmsReceiveBuffer too small. Resetting buffer.");
     smartbmsutilResetReceiveBuffer();
-    return;
+    return false;
   }
 
   for (int i = 0; i < length; i++) {
@@ -137,15 +137,19 @@ void smartbmsutilDataReceived(byte *pData, size_t length) {
           displayDrawBmsAndGasOverview(&_currentSmartbmsutilRunInfo, &_gasData);
           Serial.println("SmartbmsutilRunInfo drawed");
           //smartbmsutilPrintRunInfo(&runInfo);
+
+          // reset smartBmsReceiveBuffer
+          smartbmsutilResetReceiveBuffer();
+          return true;
         }
       } else {
         Serial.println("Packet is invalid");
+        // reset smartBmsReceiveBuffer
+        smartbmsutilResetReceiveBuffer();
       }
-
-      // reset smartBmsReceiveBuffer
-      smartbmsutilResetReceiveBuffer();
     }
   }
+  return false;
 }
 
 // this method assumes that packet is valid (CRC checked)
