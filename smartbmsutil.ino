@@ -276,7 +276,7 @@ bool smartbmsutilHasAlarmSet(SmartbmsutilRunInfo *runInfo) {
 /**
  * Send command to get RunInfo data (non blocking)
  */
-void smartbmsutilSendCommandRunInfo() {
+void smartbmsutilSendCommandRunInfoAsync() {
   Serial.println("Sending Command for RunInfo"); 
   int size =  sizeof(COMMAND_RUN_INFO);
   byte buffer[size];
@@ -291,7 +291,7 @@ void smartbmsutilSendCommandRunInfo() {
  */
 boolean smartbmsutilReadRunInfo(byte *buffer, int size) {  
   // send command to read Run Info
-  smartbmsutilSendCommandRunInfo();
+  smartbmsutilSendCommandRunInfoAsync();
 
   // read result
   int numRead = 0;
@@ -307,9 +307,14 @@ boolean smartbmsutilReadRunInfo(byte *buffer, int size) {
   }
 
   if (numRead == SIZE_RUN_INFO) {
+    if (size < numRead) {
+      Serial.print("Buffer too small, needed size: ");
+      Serial.println(numRead);
+      return false;
+    }
     // copy to buffer as length is correct
-    for (int i = 0; i < rxValue.length(); i++) {
-        buffer[i] = rxValue[i];
+    for (int i = 0; i < numRead; i++) {
+      buffer[i] = rxValue[i];
     }
     return true;
   } else {

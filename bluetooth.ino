@@ -90,6 +90,7 @@ bool connectToServer() {
   }
   Serial.println(" - Found our characteristic for writing");
 
+/*
   if(pRemoteCharacteristicRead->canNotify()) {
     Serial.println("Try to register for notification");
     pRemoteCharacteristicRead->registerForNotify(notifyCallback);
@@ -98,7 +99,7 @@ bool connectToServer() {
     Serial.println("pRemoteCharacteristicRead cannot be notified");
   }
 
-  Serial.println(" - Registered for Notification");
+  Serial.println(" - Registered for Notification");*/
 
   //connected = true;
   return true;

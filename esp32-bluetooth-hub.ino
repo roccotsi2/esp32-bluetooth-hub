@@ -50,7 +50,7 @@ GasData _gasData;
   epd_poweroff();
 }*/
 
-void fetchAndDisplayBmsDataAsync() {
+void fetchAndDisplayBmsData() {
   Serial.println("Fetch current RunInfo");
   if (!bluetoothIsConnected()) {
     Serial.println("Not connected, try to connect");
@@ -62,8 +62,15 @@ void fetchAndDisplayBmsDataAsync() {
   Serial.println(counter);
 
   if (bluetoothIsConnected()) {
-    smartbmsutilSendCommandRunInfo();
+    // smartbmsutilSendCommandRunInfoAsync();
+    byte buffer[sizeof(SmartbmsutilRunInfo)];
+    bool success = smartbmsutilReadRunInfo(buffer, sizeof(buffer));
+    if (success) {
+      smartbmsutilDataReceived(buffer, sizeof(buffer));
+    }
+    bluetoothDisconnect();
   }
+  delay(500); // wait 500ms to be sure that connection is correctly closed
 }
 
 void setup() {
@@ -98,9 +105,9 @@ void loop() {
     unsigned long currentMillis = millis();
     if (lastMillisMeasured == 0 || ((currentMillis - lastMillisMeasured) > INTERVAL_READ_BMS_MILLIS)) {
       lastMillisMeasured = currentMillis;
-      fetchAndDisplayBmsDataAsync();
+      fetchAndDisplayBmsData();
 
-      delay(5000);
+      //delay(5000);
 
       Serial.print("Free heap: ");
       Serial.println(ESP.getFreeHeap());
