@@ -7,7 +7,7 @@ Bluetooth Low Engery (BLE) data display with ESP32 to display Smart BMS and weig
 LILYGO T5 4.7 inch E-paper Screen ESP32
 
 ## Needed libraries:
-- Board: esp32 (version 1.0.6 used)
+- Board: esp32 (version 1.0.4 used, newer versions have bug with MTU of BLE)
 - For Lilygo T5 see instructions and code: https://github.com/Xinyuan-LilyGO/LilyGo-EPD47
 
 ## Parameter for builing with Arduino:
