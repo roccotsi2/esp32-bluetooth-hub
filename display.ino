@@ -222,7 +222,6 @@ void drawBmsOverviewData(SmartbmsutilRunInfo *runInfo, boolean individualCells) 
   float currentA = (runInfo->currentA - 30000) / 10.0;
   float currentKw = runInfo->currentKw / 1000.0;
   int textSizeNormal = 18;
-  int textSizeMiddle = 12;
   int textSizeSmall = 8;
   char currentChargeText[10];
   sprintf(currentChargeText, "%d %%", currentCharge);
@@ -281,14 +280,8 @@ void drawBmsOverviewData(SmartbmsutilRunInfo *runInfo, boolean individualCells) 
         drawString(textSizeNormal, x, currentY, "Z");
         sprintf(text, "%d", batteryIndex + 1);
         drawString(textSizeSmall, x + zTextWidth, currentY, text);
-        if (runInfo->countBatteryTemp > batteryIndex) {
-          // voltage + temp
-          sprintf(text, "%.3f V (%d °C)", runInfo->batteryVoltages[batteryIndex] / 1000.0, runInfo->batteryTemp[batteryIndex] - 40); 
-        } else {
-          // only voltage
-          sprintf(text, "%.3f V", runInfo->batteryVoltages[batteryIndex] / 1000.0); 
-        }
-        drawString(textSizeMiddle, x + zTextWidth + textSmallWidth + 10, currentY, text);
+        sprintf(text, "%.3f V", runInfo->batteryVoltages[batteryIndex] / 1000.0); 
+        drawString(textSizeNormal, x + zTextWidth + textSmallWidth + 10, currentY, text);
         batteryIndex++;
       }
       currentY = currentY + textNormalHeight + textDistanceVertical;
@@ -346,6 +339,13 @@ void drawBmsOverviewData(SmartbmsutilRunInfo *runInfo, boolean individualCells) 
 
   currentY = currentY + textNormalHeight + textDistanceVertical;
   drawTextWithCheckbox(textSizeNormal, textXStart, currentY, "Alarm:", smartbmsutilHasAlarmSet(runInfo));
+
+  if (individualCells && runInfo->countBatteryTemp > 0) {
+    // draw first temperature right beside Alarm
+    char text[10];
+    sprintf(text, "Temp: %d°C", runInfo->batteryTemp[0] - 40);
+    drawString(textSizeNormal, leftMiddleX, currentY, text);
+  }
 }
 
 void drawBmsBatteriesOnRightSide(SmartbmsutilRunInfo *runInfo) {
