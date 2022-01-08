@@ -195,14 +195,22 @@ void drawHeader(char *title) {
   // vertical line right from fifth button
   drawVLine(560, 0, 40, COLOR_BLACK, 2);
 
-  // BMS connection state
-  int textHeight = 0;
-  int textWidth = 0;
-  char textBmsConnection[] = "BMS:";
-  getTextWidthAndHeight(12, textBmsConnection, &textWidth, &textHeight);
-  drawString(12, 580, 27, textBmsConnection);
-  if (bluetoothIsConnected()) {
-    drawBluetoothSymbol(580 + textWidth + 10, 5, 30);
+  // Connection states
+  if (!bluetoothDisabled) {
+    drawBluetoothSymbol(580, 5, 30);
+  }
+  
+  //int textHeight = 0;
+  //int textWidth = 0;
+
+  if (bmsFound) {
+  //getTextWidthAndHeight(12, textBmsConnection, &textWidth, &textHeight);
+    drawString(12, 580 + 40, 27, "BMS");
+  }
+
+  if (scaleFound) {
+  //getTextWidthAndHeight(12, textBmsConnection, &textWidth, &textHeight);
+    drawString(12, 580 + 40 + 70, 27, "Gas");
   }
 }
 

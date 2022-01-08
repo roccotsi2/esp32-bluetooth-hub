@@ -48,6 +48,7 @@ SavedDataConfiguration configuration;
 bool bmsFound = false;
 bool scaleFound = false;
 bool bluetoothDataReceived = false; // set to true, if data was successfull received
+bool bluetoothDisabled = false;
 
 /*void displayPressedButton(int buttonNo, char *state) {
   epd_poweron();
@@ -139,7 +140,7 @@ void setup() {
 }
 
 void loop() {
-  if (DEMO_MODE == 0) {
+  if (DEMO_MODE == 0 && !bluetoothDisabled) {
     unsigned long currentMillis = millis();
     if (!configuration.skipBms && (lastMillisMeasuredBms == 0 || ((currentMillis - lastMillisMeasuredBms) > configuration.updateIntervalBmsSeconds * 1000))) {
       lastMillisMeasuredBms = currentMillis;
@@ -160,6 +161,7 @@ void loop() {
     Serial.println("Sel pressed");
   } else if (buttonPress == BUTTON_LONG_PRESSED) {
     Serial.println("Sel long pressed");
-    bluetoothDisconnect();
+    bluetoothDisabled = !bluetoothDisabled; // invert bluetoothDisabled
+    displayDrawBmsAndGasOverview(&_currentSmartbmsutilRunInfo, &_gasData); // refresh the display to show the inverted connection state
   }
 }
