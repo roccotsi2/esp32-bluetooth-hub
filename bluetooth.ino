@@ -1,10 +1,3 @@
-// The remote service we wish to connect to (Smart BMS)
-static BLEUUID serviceUUID("0000fff0-0000-1000-8000-00805f9b34fb");
-// The characteristic of the remote service we are interested in for reading
-static BLEUUID    charReadUUID("0000fff1-0000-1000-8000-00805f9b34fb");
-// The characteristic of the remote service we are interested in for writing
-static BLEUUID    charWriteUUID("0000fff2-0000-1000-8000-00805f9b34fb");
-
 //static boolean doConnect = false;
 //static boolean connected = false;
 static boolean doScan = false;
@@ -14,13 +7,18 @@ static BLERemoteCharacteristic* pRemoteCharacteristicWrite;
 static std::string myDeviceAddresses[2];
 static BLEScan* pBLEScan;
 static BLEClient* pClient;
-int currentDeviceNo = 0;
-int countDevices = 0;
+byte currentDeviceNo = 0;
+byte countDevices = 0;
+byte scanDeviceIndex;
+char* scanName;
+BLEUUID scanServiceUuid;
 
 static void notifyCallback(BLERemoteCharacteristic* pBLERemoteCharacteristic, uint8_t* pData, size_t length, bool isNotify) {
   if (smartbmsutilDataReceived(pData, length)) {
     // disconnect after data was successful read
     bluetoothDisconnect();
+    delay(200); // wait to be sure that connection is correctly closed
+    bluetoothDataReceived = true;
   }
 }
 
@@ -35,7 +33,7 @@ class MyClientCallback : public BLEClientCallbacks {
   }
 };
 
-bool connectToServer() {
+bool bluetoothConnectToServer(byte deviceIndex, BLEUUID charReadUUID, BLEUUID charWriteUUID) {
   if (countDevices == 0 || currentDeviceNo >= countDevices) {
     return false;
   }
@@ -46,10 +44,9 @@ bool connectToServer() {
   int count = 0;
   boolean success = false;
   unsigned long lastMillis = millis();
-  while (count < 5 && !success && (millis() - lastMillis < 29000)) { // connection timeout is 30 sec (do not retry if connection timed out)
+  while (count < 10 && !success && (millis() - lastMillis < 29000)) { // connection timeout is 30 sec (do not retry if connection timed out before)
     delay(100);
-    success = pClient->connect(BLEAddress(myDeviceAddresses[currentDeviceNo]));  // if you pass BLEAdvertisedDevice instead of address, it will be recognized type of peer device address (public or private)
-    //success = pClient->connect(myDevice);  // if you pass BLEAdvertisedDevice instead of address, it will be recognized type of peer device address (public or private)
+    success = pClient->connect(BLEAddress(myDeviceAddresses[currentDeviceNo]));
     count++;
   }
   if (!success) {
@@ -90,7 +87,6 @@ bool connectToServer() {
   }
   Serial.println(" - Found our characteristic for writing");
 
-/*
   if(pRemoteCharacteristicRead->canNotify()) {
     Serial.println("Try to register for notification");
     pRemoteCharacteristicRead->registerForNotify(notifyCallback);
@@ -99,7 +95,7 @@ bool connectToServer() {
     Serial.println("pRemoteCharacteristicRead cannot be notified");
   }
 
-  Serial.println(" - Registered for Notification");*/
+  Serial.println(" - Registered for Notification");
 
   //connected = true;
   return true;
@@ -114,14 +110,14 @@ class MyAdvertisedDeviceCallbacks: public BLEAdvertisedDeviceCallbacks {
    */
   void onResult(BLEAdvertisedDevice advertisedDevice) {
     // We have found a device, let us now see if it contains the service we are looking for.
-    if (advertisedDevice.getName().rfind("DL-", 0) == 0 && advertisedDevice.haveServiceUUID() && advertisedDevice.isAdvertisingService(serviceUUID)) {
+    if (advertisedDevice.getName().rfind(scanName, 0) == 0 && advertisedDevice.haveServiceUUID() && advertisedDevice.isAdvertisingService(scanServiceUuid)) {
       BLEDevice::getScan()->stop();
       //myDevice = new BLEAdvertisedDevice(advertisedDevice);
       //doConnect = true;
       doScan = true;
       Serial.println("Device found");
       countDevices++;
-      myDeviceAddresses[countDevices - 1] = advertisedDevice.getAddress().toString().c_str();
+      myDeviceAddresses[scanDeviceIndex] = advertisedDevice.getAddress().toString().c_str();
     } // Found our server
   } // onResult
 }; // MyAdvertisedDeviceCallbacks
@@ -143,8 +139,19 @@ void bluetoothSetupBluetoothBle() {
   pClient->setClientCallbacks(new MyClientCallback());
 }
 
-void bluetoothStartScan() {
-  pBLEScan->start(0, false);
+bool bluetoothScan(byte deviceIndex, char* name, BLEUUID serviceUuid) {
+  if (deviceIndex < 0 || deviceIndex > sizeof(myDeviceAddresses) - 1) {
+    Serial.println("Device index invalid");
+    return false;
+  }
+  scanDeviceIndex = deviceIndex;
+  scanName = name;
+  scanServiceUuid = serviceUuid;
+  Serial.println("Start scan...");
+  pBLEScan->start(20, false); // scan for 20 sec
+  Serial.println("Scan finished");
+  
+  return myDeviceAddresses[scanDeviceIndex].length() > 0;
 }
 
 bool bluetoothIsConnected() {
@@ -156,20 +163,17 @@ bool bluetoothIsConnected() {
   }
 }
 
-void bluetoothTryConnect() {
+/*void bluetoothTryConnect(byte deviceIndex, BLEUUID charReadUUID, BLEUUID charWriteUUID) {
   Serial.println("bluetoothTryConnect()");
-  // If the flag "doConnect" is true then we have scanned for and found the desired
-  // BLE Server with which we wish to connect.  Now we connect to it.  Once we are 
-  // connected we set the connected flag to be true.
   if (countDevices > 0 && currentDeviceNo < countDevices && !bluetoothIsConnected()) {
-    if (connectToServer()) {
+    if (connectToServer(deviceIndex, charReadUUID, charWriteUUID)) {
       Serial.println("We are now connected to the BLE Server.");
     } else {
       Serial.println("We have failed to connect to the server; there is nothin more we will do.");
     }
     //doConnect = false;
   }
-}
+}*/
 
 void bluetoothDisconnect() {
   if (bluetoothIsConnected()) {

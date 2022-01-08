@@ -283,11 +283,13 @@ void smartbmsutilSendCommandRunInfoAsync() {
   for (int i = 0; i < size; i++) {
     buffer[i] = (byte) COMMAND_RUN_INFO[i];
   }
+  bluetoothDataReceived = false;
   bluetoothSendByteArray(buffer, sizeof(buffer));
 }
 
 /**
- * Send command to get RunInfo data and read the result (blocking)
+ * Send command to get RunInfo data and read the result (blocking).
+ * Does not work with real BMS!!!
  */
 boolean smartbmsutilReadRunInfo(byte *buffer, int size) {  
   // send command to read Run Info
@@ -303,6 +305,7 @@ boolean smartbmsutilReadRunInfo(byte *buffer, int size) {
     numRead = rxValue.length();
     Serial.print("numRead = ");
     Serial.println(numRead);
+    hexutilPrintByteArrayInHex(buffer, size);
     count++;
   }
 

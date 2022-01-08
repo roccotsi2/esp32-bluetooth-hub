@@ -29,15 +29,25 @@ const byte BUTTON_SHORT_PRESSED = 1;
 const byte BUTTON_LONG_PRESSED = 2;
 const int MILLIS_LONG_BUTTON_PRESS = 2000;
 
-// define timings
-const unsigned long INTERVAL_READ_BMS_MILLIS = 5000; // read BMS each minute
+const byte DEVICE_INDEX_BMS = 0;
+const byte DEVICE_INDEX_SCALE = 1;
+
+// The remote service we wish to connect to (Smart BMS)
+static BLEUUID serviceUUID("0000fff0-0000-1000-8000-00805f9b34fb");
+static BLEUUID charReadUUID("0000fff1-0000-1000-8000-00805f9b34fb");
+static BLEUUID charWriteUUID("0000fff2-0000-1000-8000-00805f9b34fb");
 
 // variables
 uint8_t *frameBuffer;
-unsigned long lastMillisMeasured = 0;
+unsigned long lastMillisMeasuredBms = 0;
+unsigned long lastMillisMeasuredScale = 0;
 int counter = 0;
 SmartbmsutilRunInfo _currentSmartbmsutilRunInfo;
 GasData _gasData;
+SavedDataConfiguration configuration;
+bool bmsFound = false;
+bool scaleFound = false;
+bool bluetoothDataReceived = false; // set to true, if data was successfull received
 
 /*void displayPressedButton(int buttonNo, char *state) {
   epd_poweron();
@@ -50,27 +60,40 @@ GasData _gasData;
   epd_poweroff();
 }*/
 
+void waitUntilDataReceived(int timeoutSeconds) {
+  unsigned long startMillis = millis();
+  while (!bluetoothDataReceived && (millis() - startMillis < timeoutSeconds * 1000)) {
+    delay(100);
+  }
+
+  if (!bluetoothDataReceived) {
+    Serial.println("waitUntilDataReceived: no data received, timeout reached");
+  } else {
+    Serial.println("waitUntilDataReceived: data received");
+  }
+}
+
 void fetchAndDisplayBmsData() {
   Serial.println("Fetch current RunInfo");
+  bluetoothDisconnect(); // disconnect to be sure that no former connection is established
+  delay(200);
   if (!bluetoothIsConnected()) {
-    Serial.println("Not connected, try to connect");
-    bluetoothTryConnect();
+    bluetoothConnectToServer(DEVICE_INDEX_BMS, charReadUUID, charWriteUUID);
     counter++;
-  }
-
-  Serial.print("# Connects: ");
-  Serial.println(counter);
-
-  if (bluetoothIsConnected()) {
-    // smartbmsutilSendCommandRunInfoAsync();
-    byte buffer[sizeof(SmartbmsutilRunInfo)];
-    bool success = smartbmsutilReadRunInfo(buffer, sizeof(buffer));
-    if (success) {
-      smartbmsutilDataReceived(buffer, sizeof(buffer));
+    Serial.print("# Connects: ");
+    Serial.println(counter);
+  
+    if (bluetoothIsConnected()) {
+      smartbmsutilSendCommandRunInfoAsync(); // send command async, data is displayed by callback
+      waitUntilDataReceived(10);
     }
-    bluetoothDisconnect();
-  }
-  delay(500); // wait 500ms to be sure that connection is correctly closed
+  } else {
+    Serial.println("Could not disconnect bluetooth, no data was sent");
+  }  
+}
+
+void fetchAndDisplayScaleData() {
+  // TODO
 }
 
 void setup() {
@@ -84,10 +107,23 @@ void setup() {
   if (DEMO_MODE == 0) {
     Serial.println("Starting Arduino BLE Client application...");
     bluetoothSetupBluetoothBle();
-    bluetoothStartScan();
-  }
+    
+    if (!configuration.skipBms) {
+      bmsFound = bluetoothScan(DEVICE_INDEX_BMS, "DL-", serviceUUID);
+      Serial.print("bmsFound = ");
+      Serial.println(bmsFound);
+    } else {
+      Serial.println("BMS skipped");
+    }
 
-  if (DEMO_MODE == 1) {
+    if (!configuration.skipScale) {
+      scaleFound = bluetoothScan(DEVICE_INDEX_SCALE, "SCALE-", serviceUUID);
+      Serial.print("scaleFound = ");
+      Serial.println(scaleFound);
+    } else {
+      Serial.println("Scale skipped");
+    }
+  } else {
     SmartbmsutilRunInfo runInfo;
     smartbmsdemoFillSmartbmsutilRunInfo(&runInfo);
     displayDrawContentBmsDetail(&runInfo);
@@ -98,19 +134,24 @@ void setup() {
   _gasData.nettoWeightGram = (11000 * _gasData.fillingLevelPercent) / 100;
   _gasData.remainingDays = 12;
   _gasData.usagePerDayGram = _gasData.nettoWeightGram / _gasData.remainingDays;
+
+  Serial.println("Setup finished");
 }
 
 void loop() {
   if (DEMO_MODE == 0) {
     unsigned long currentMillis = millis();
-    if (lastMillisMeasured == 0 || ((currentMillis - lastMillisMeasured) > INTERVAL_READ_BMS_MILLIS)) {
-      lastMillisMeasured = currentMillis;
+    if (!configuration.skipBms && (lastMillisMeasuredBms == 0 || ((currentMillis - lastMillisMeasuredBms) > configuration.updateIntervalBmsSeconds * 1000))) {
+      lastMillisMeasuredBms = currentMillis;
       fetchAndDisplayBmsData();
-
-      //delay(5000);
 
       Serial.print("Free heap: ");
       Serial.println(ESP.getFreeHeap());
+    }
+
+    if (!configuration.skipScale && (lastMillisMeasuredScale == 0 || ((currentMillis - lastMillisMeasuredScale) > configuration.updateIntervalScaleSeconds * 1000))) {
+      lastMillisMeasuredScale = currentMillis;
+      fetchAndDisplayScaleData();
     }
   }
 

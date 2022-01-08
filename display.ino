@@ -340,9 +340,9 @@ void drawBmsOverviewData(SmartbmsutilRunInfo *runInfo, boolean individualCells) 
     currentY = currentY + textNormalHeight + textDistanceVertical;
   }
 
-  drawTextWithCheckbox(textSizeNormal, textXStart, currentY, "Laden:", runInfo->cdmos == 1);
+  drawTextWithCheckbox(textSizeNormal, textXStart, currentY, "H-Volt:", runInfo->cdmos == 0);
 
-  drawTextWithCheckbox(textSizeNormal, leftMiddleX, currentY, "Entladen:", runInfo->fdmos == 1);
+  drawTextWithCheckbox(textSizeNormal, leftMiddleX, currentY, "N-Volt:", runInfo->fdmos == 0);
 
   currentY = currentY + textNormalHeight + textDistanceVertical;
   drawTextWithCheckbox(textSizeNormal, textXStart, currentY, "Alarm:", smartbmsutilHasAlarmSet(runInfo));

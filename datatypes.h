@@ -75,3 +75,13 @@ typedef struct gasData {
    int16_t usagePerDayGram;
    int16_t remainingDays;
 } __attribute__ ((packed)) GasData;
+
+// struct for saving data in EEPROM
+struct SavedDataConfiguration {
+  std::string bluetoothAddressBms;
+  std::string bluetoothAddressScale;
+  int updateIntervalBmsSeconds = 10; // default value
+  int updateIntervalScaleSeconds = 60; // default value
+  bool skipBms = false; // default value
+  bool skipScale = true; // default value
+};
