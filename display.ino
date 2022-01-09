@@ -203,12 +203,12 @@ void drawHeader(char *title) {
   //int textHeight = 0;
   //int textWidth = 0;
 
-  if (bmsFound) {
+  if (bmsConnectionSuccessful) {
   //getTextWidthAndHeight(12, textBmsConnection, &textWidth, &textHeight);
     drawString(12, 580 + 40, 27, "BMS");
   }
 
-  if (scaleFound) {
+  if (scaleConnectionSuccessful) {
   //getTextWidthAndHeight(12, textBmsConnection, &textWidth, &textHeight);
     drawString(12, 580 + 40 + 70, 27, "Gas");
   }

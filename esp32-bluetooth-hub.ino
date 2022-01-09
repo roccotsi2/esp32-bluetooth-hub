@@ -45,23 +45,14 @@ int counter = 0;
 SmartbmsutilRunInfo _currentSmartbmsutilRunInfo;
 GasData _gasData;
 SavedDataConfiguration configuration;
-bool bmsFound = false;
-bool scaleFound = false;
+bool bmsFound = false; // stores if the BMS was found initially
+bool scaleFound = false; // stores if the scale was found initially
+bool bmsConnectionSuccessful = false; // stores if the last connection attemp was successful
+bool scaleConnectionSuccessful = false; // stores if the last connection attemp was successful
 bool bluetoothDataReceived = false; // set to true, if data was successfull received
-bool bluetoothDisabled = false;
+bool bluetoothDisabled = false; // if set to true, no connection via bluetooth is done
 
-/*void displayPressedButton(int buttonNo, char *state) {
-  epd_poweron();
-  epd_clear();
-  int cursor_x = 0;
-  int cursor_y = 300;
-  char buttonText[100];
-  sprintf(buttonText, "Button %s: %s", String(buttonNo), state);
-  writeln((GFXfont *)&FiraSans, buttonText, &cursor_x, &cursor_y, NULL);
-  epd_poweroff();
-}*/
-
-void waitUntilDataReceived(int timeoutSeconds) {
+bool waitUntilDataReceived(int timeoutSeconds) {
   unsigned long startMillis = millis();
   while (!bluetoothDataReceived && (millis() - startMillis < timeoutSeconds * 1000)) {
     delay(100);
@@ -69,8 +60,10 @@ void waitUntilDataReceived(int timeoutSeconds) {
 
   if (!bluetoothDataReceived) {
     Serial.println("waitUntilDataReceived: no data received, timeout reached");
+    return false;
   } else {
     Serial.println("waitUntilDataReceived: data received");
+    return true;
   }
 }
 
@@ -79,18 +72,32 @@ void fetchAndDisplayBmsData() {
   bluetoothDisconnect(); // disconnect to be sure that no former connection is established
   delay(200);
   if (!bluetoothIsConnected()) {
-    bluetoothConnectToServer(DEVICE_INDEX_BMS, charReadUUID, charWriteUUID);
-    counter++;
-    Serial.print("# Connects: ");
-    Serial.println(counter);
-  
-    if (bluetoothIsConnected()) {
-      smartbmsutilSendCommandRunInfoAsync(); // send command async, data is displayed by callback
-      waitUntilDataReceived(10);
+    if (bluetoothConnectToServer(DEVICE_INDEX_BMS, charReadUUID, charWriteUUID)) {
+      counter++;
+      Serial.print("# Connects: ");
+      Serial.println(counter);
+    
+      if (bluetoothIsConnected()) {
+        smartbmsutilSendCommandRunInfoAsync(); // send command async, data is displayed by callback
+        if (!waitUntilDataReceived(10)) {
+          bmsConnectionSuccessful = false;
+        }
+      } else {
+        Serial.println("Could not connect to BMS, no data was sent");
+        bmsConnectionSuccessful = false;
+      }
+    } else {
+      Serial.println("Could not connect to BMS, no data was sent");
+      bmsConnectionSuccessful = false;
     }
   } else {
     Serial.println("Could not disconnect bluetooth, no data was sent");
+    bmsConnectionSuccessful = false;
   }  
+
+  if (!bmsConnectionSuccessful) {
+    displayDrawBmsAndGasOverview(&_currentSmartbmsutilRunInfo, &_gasData); // refresh the display to update the status
+  }
 }
 
 void fetchAndDisplayScaleData() {
