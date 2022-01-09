@@ -33,9 +33,14 @@ const byte DEVICE_INDEX_BMS = 0;
 const byte DEVICE_INDEX_SCALE = 1;
 
 // The remote service we wish to connect to (Smart BMS)
-static BLEUUID serviceUUID("0000fff0-0000-1000-8000-00805f9b34fb");
-static BLEUUID charReadUUID("0000fff1-0000-1000-8000-00805f9b34fb");
-static BLEUUID charWriteUUID("0000fff2-0000-1000-8000-00805f9b34fb");
+static BLEUUID serviceUUIDBms("0000fff0-0000-1000-8000-00805f9b34fb");
+static BLEUUID charReadUUIDBms("0000fff1-0000-1000-8000-00805f9b34fb");
+static BLEUUID charWriteUUIDBms("0000fff2-0000-1000-8000-00805f9b34fb");
+
+// The remote service we wish to connect to (scale)
+static BLEUUID serviceUUIDScale("df469ada-185e-11ec-9621-0242ac130002");
+static BLEUUID charReadUUIDScale("e8f1aaac-185e-11ec-9621-0242ac130002");
+static BLEUUID charWriteUUIDScale("71c90414-1860-11ec-9621-0242ac130002");
 
 // variables
 uint8_t *frameBuffer;
@@ -72,7 +77,7 @@ void fetchAndDisplayBmsData() {
   bluetoothDisconnect(); // disconnect to be sure that no former connection is established
   delay(200);
   if (!bluetoothIsConnected()) {
-    if (bluetoothConnectToServer(DEVICE_INDEX_BMS, charReadUUID, charWriteUUID)) {
+    if (bluetoothConnectToServer(DEVICE_INDEX_BMS, serviceUUIDBms, charReadUUIDBms, charWriteUUIDBms)) {
       counter++;
       Serial.print("# Connects: ");
       Serial.println(counter);
@@ -101,7 +106,36 @@ void fetchAndDisplayBmsData() {
 }
 
 void fetchAndDisplayScaleData() {
-  // TODO
+  Serial.println("Fetch current scale data");
+  bluetoothDisconnect(); // disconnect to be sure that no former connection is established
+  delay(200);
+  if (!bluetoothIsConnected()) {
+    if (bluetoothConnectToServer(DEVICE_INDEX_SCALE, serviceUUIDScale, charReadUUIDScale, charWriteUUIDScale)) {
+      counter++;
+      Serial.print("# Connects: ");
+      Serial.println(counter);
+    
+      if (bluetoothIsConnected()) {
+        /*smartbmsutilSendCommandRunInfoAsync(); // send command async, data is displayed by callback
+        if (!waitUntilDataReceived(10)) {
+          bmsConnectionSuccessful = false;
+        }*/
+      } else {
+        Serial.println("Could not connect to scale, no data was sent");
+        scaleConnectionSuccessful = false;
+      }
+    } else {
+      Serial.println("Could not connect to scale, no data was sent");
+      scaleConnectionSuccessful = false;
+    }
+  } else {
+    Serial.println("Could not disconnect bluetooth, no data was sent");
+    scaleConnectionSuccessful = false;
+  }  
+
+  if (!bmsConnectionSuccessful) {
+    displayDrawBmsAndGasOverview(&_currentSmartbmsutilRunInfo, &_gasData); // refresh the display to update the status
+  }
 }
 
 void setup() {
@@ -117,7 +151,7 @@ void setup() {
     bluetoothSetupBluetoothBle();
     
     if (!configuration.skipBms) {
-      bmsFound = bluetoothScan(DEVICE_INDEX_BMS, "DL-", serviceUUID);
+      bmsFound = bluetoothScan(DEVICE_INDEX_BMS, "DL-", serviceUUIDBms);
       Serial.print("bmsFound = ");
       Serial.println(bmsFound);
     } else {
@@ -125,7 +159,7 @@ void setup() {
     }
 
     if (!configuration.skipScale) {
-      scaleFound = bluetoothScan(DEVICE_INDEX_SCALE, "SCALE-", serviceUUID);
+      scaleFound = bluetoothScan(DEVICE_INDEX_SCALE, "SCALE-", serviceUUIDScale);
       Serial.print("scaleFound = ");
       Serial.println(scaleFound);
     } else {

@@ -33,10 +33,11 @@ class MyClientCallback : public BLEClientCallbacks {
   }
 };
 
-bool bluetoothConnectToServer(byte deviceIndex, BLEUUID charReadUUID, BLEUUID charWriteUUID) {
+bool bluetoothConnectToServer(byte deviceIndex, BLEUUID serviceUUID, BLEUUID charReadUUID, BLEUUID charWriteUUID) {
   if (countDevices == 0 || currentDeviceNo >= countDevices) {
     return false;
   }
+  currentDeviceNo = deviceIndex;
   Serial.print("Forming a connection to ");
   Serial.println(myDeviceAddresses[currentDeviceNo].c_str());
 
@@ -109,6 +110,13 @@ class MyAdvertisedDeviceCallbacks: public BLEAdvertisedDeviceCallbacks {
    * Called for each advertising BLE server.
    */
   void onResult(BLEAdvertisedDevice advertisedDevice) {
+    // TODO: without these prints the scale is not detected. Needs a fix
+    Serial.print("advertisedDevice.getName() = ");
+    Serial.println(advertisedDevice.getName().c_str());
+    Serial.print("scanName = ");
+    Serial.println(scanName);
+    Serial.print("advertisedDevice.getName().rfind(scanName, 0) = ");
+    Serial.println(advertisedDevice.getName().rfind(scanName, 0));
     // We have found a device, let us now see if it contains the service we are looking for.
     if (advertisedDevice.getName().rfind(scanName, 0) == 0 && advertisedDevice.haveServiceUUID() && advertisedDevice.isAdvertisingService(scanServiceUuid)) {
       BLEDevice::getScan()->stop();
@@ -178,7 +186,7 @@ bool bluetoothIsConnected() {
 void bluetoothDisconnect() {
   if (bluetoothIsConnected()) {
     Serial.print("Disconnecting from: ");
-    Serial.println(charWriteUUID.toString().c_str());
+    Serial.println(myDeviceAddresses[currentDeviceNo].c_str());
     /*if (pRemoteCharacteristicRead != NULL) {
       pRemoteCharacteristicRead->registerForNotify(NULL);
     }*/
