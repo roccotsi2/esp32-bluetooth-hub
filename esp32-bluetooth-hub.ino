@@ -72,6 +72,17 @@ bool waitUntilDataReceived(int timeoutSeconds) {
   }
 }
 
+void switchBluetoothEnabledState() {
+  bluetoothDisabled = !bluetoothDisabled; // invert bluetoothDisabled
+  displayDrawBmsAndGasOverview(&_currentSmartbmsutilRunInfo, &_gasData); // refresh the display to show the inverted connection state
+  Serial.print("Bluetooth ");
+  if (bluetoothDisabled) {
+    Serial.println("disabled");
+  } else {
+    Serial.println("enabled");
+  }
+}
+
 void fetchAndDisplayBmsData() {
   Serial.println("Fetch current RunInfo");
   bluetoothDisconnect(); // disconnect to be sure that no former connection is established
@@ -110,6 +121,7 @@ void fetchAndDisplayScaleData() {
   bluetoothDisconnect(); // disconnect to be sure that no former connection is established
   delay(200);
   if (!bluetoothIsConnected()) {
+    Serial.println("Calling bluetoothConnectToServer");
     if (bluetoothConnectToServer(DEVICE_INDEX_SCALE, serviceUUIDScale, charReadUUIDScale, charWriteUUIDScale)) {
       counter++;
       Serial.print("# Connects: ");
@@ -155,6 +167,7 @@ void setup() {
       Serial.print("bmsFound = ");
       Serial.println(bmsFound);
     } else {
+      bmsFound = false;
       Serial.println("BMS skipped");
     }
 
@@ -163,6 +176,7 @@ void setup() {
       Serial.print("scaleFound = ");
       Serial.println(scaleFound);
     } else {
+      scaleFound = false;
       Serial.println("Scale skipped");
     }
   } else {
@@ -183,7 +197,7 @@ void setup() {
 void loop() {
   if (DEMO_MODE == 0 && !bluetoothDisabled) {
     unsigned long currentMillis = millis();
-    if (!configuration.skipBms && (lastMillisMeasuredBms == 0 || ((currentMillis - lastMillisMeasuredBms) > configuration.updateIntervalBmsSeconds * 1000))) {
+    if (bmsFound && !configuration.skipBms && (lastMillisMeasuredBms == 0 || ((currentMillis - lastMillisMeasuredBms) > configuration.updateIntervalBmsSeconds * 1000))) {
       lastMillisMeasuredBms = currentMillis;
       fetchAndDisplayBmsData();
 
@@ -191,7 +205,7 @@ void loop() {
       Serial.println(ESP.getFreeHeap());
     }
 
-    if (!configuration.skipScale && (lastMillisMeasuredScale == 0 || ((currentMillis - lastMillisMeasuredScale) > configuration.updateIntervalScaleSeconds * 1000))) {
+    if (scaleFound && !configuration.skipScale && (lastMillisMeasuredScale == 0 || ((currentMillis - lastMillisMeasuredScale) > configuration.updateIntervalScaleSeconds * 1000))) {
       lastMillisMeasuredScale = currentMillis;
       fetchAndDisplayScaleData();
     }
@@ -202,7 +216,8 @@ void loop() {
     Serial.println("Sel pressed");
   } else if (buttonPress == BUTTON_LONG_PRESSED) {
     Serial.println("Sel long pressed");
-    bluetoothDisabled = !bluetoothDisabled; // invert bluetoothDisabled
-    displayDrawBmsAndGasOverview(&_currentSmartbmsutilRunInfo, &_gasData); // refresh the display to show the inverted connection state
+    switchBluetoothEnabledState();
   }
+
+  delay(100); // to give other theads enough time
 }

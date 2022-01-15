@@ -33,10 +33,27 @@ class MyClientCallback : public BLEClientCallbacks {
   }
 };
 
-bool bluetoothConnectToServer(byte deviceIndex, BLEUUID serviceUUID, BLEUUID charReadUUID, BLEUUID charWriteUUID) {
-  if (countDevices == 0 || currentDeviceNo >= countDevices) {
-    return false;
+void bluetoothListServices() {
+  /*std::map<std::string, BLERemoteService*>* input_map = pClient->getServices();
+  map<std::string, BLERemoteService*>::iterator it;
+  for (it = symbolTable.begin(); it != symbolTable.end(); it++)
+  {
+      Serial.println(it->first);
+  }*/
+
+  std::map<std::string, BLERemoteService*> *pRemoteServices = pClient->getServices();
+
+  if (pRemoteServices == nullptr) {
+    Serial.println("Failed to find services");
+    return;
   }
+  
+  for (auto it=pRemoteServices->begin(); it!=pRemoteServices->end(); ++it) {
+    Serial.println(it->first.c_str());
+  }
+}
+
+bool bluetoothConnectToServer(byte deviceIndex, BLEUUID serviceUUID, BLEUUID charReadUUID, BLEUUID charWriteUUID) {
   currentDeviceNo = deviceIndex;
   Serial.print("Forming a connection to ");
   Serial.println(myDeviceAddresses[currentDeviceNo].c_str());
