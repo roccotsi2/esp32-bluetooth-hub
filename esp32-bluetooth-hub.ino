@@ -128,10 +128,10 @@ void fetchAndDisplayScaleData() {
       Serial.println(counter);
     
       if (bluetoothIsConnected()) {
-        /*smartbmsutilSendCommandRunInfoAsync(); // send command async, data is displayed by callback
+        scaleutilSendCommandScaleCurrentWeightAsync(); // send command async, data is displayed by callback
         if (!waitUntilDataReceived(10)) {
-          bmsConnectionSuccessful = false;
-        }*/
+          scaleConnectionSuccessful = false;
+        }
       } else {
         Serial.println("Could not connect to scale, no data was sent");
         scaleConnectionSuccessful = false;
@@ -145,7 +145,7 @@ void fetchAndDisplayScaleData() {
     scaleConnectionSuccessful = false;
   }  
 
-  if (!bmsConnectionSuccessful) {
+  if (!scaleConnectionSuccessful) {
     displayDrawBmsAndGasOverview(&_currentSmartbmsutilRunInfo, &_gasData); // refresh the display to update the status
   }
 }
@@ -186,10 +186,10 @@ void setup() {
   }
 
   // TODO: remove demo scale data
-  _gasData.fillingLevelPercent = 78;
+  /*_gasData.fillingLevelPercent = 78;
   _gasData.nettoWeightGram = (11000 * _gasData.fillingLevelPercent) / 100;
   _gasData.remainingDays = 12;
-  _gasData.usagePerDayGram = _gasData.nettoWeightGram / _gasData.remainingDays;
+  _gasData.usagePerDayGram = _gasData.nettoWeightGram / _gasData.remainingDays;*/
 
   Serial.println("Setup finished");
 }

@@ -10,7 +10,7 @@ const int SIZE_CURRENT_WEIGHT = sizeof(ScaleCurrentWeight);
 const int MAX_NETTO_WEIGHT = 11000;
 const int TARA_WEIGHT_GRAM = 5400;
 
-void updateGasData(ScaleCurrentWeight *scaleCurrentWeight) {   
+void scaleutilUpdateGasData(ScaleCurrentWeight *scaleCurrentWeight) {   
   _gasData.nettoWeightGram = scaleCurrentWeight->currentBruttoGram - TARA_WEIGHT_GRAM;
   _gasData.fillingLevelPercent = (_gasData.nettoWeightGram * 100) / MAX_NETTO_WEIGHT;
   _gasData.usagePerDayGram = 715; // TODO: calculate by difference measurements
@@ -31,10 +31,10 @@ void scaleutilSwapBytesEndian(byte *buffer, int size) {
   }
 }
 
-void scaleutilDataReceived(byte *pData, size_t length) {
+bool scaleutilDataReceived(byte *pData, size_t length) {
   if (length == 0) {
     // nothing to do
-    return;
+    return false;
   }
 
   Serial.print("Num bytes received: ");
@@ -46,8 +46,13 @@ void scaleutilDataReceived(byte *pData, size_t length) {
 
   ScaleCurrentWeight scaleCurrentWeight = scaleutilScaleCurrentWeight(scaleReceiveBuffer, length);
   Serial.println("ScaleCurrentWeight created");
+  scaleConnectionSuccessful = true;
+  
+  scaleutilUpdateGasData(&scaleCurrentWeight);
+  
   displayDrawBmsAndGasOverview(&_currentSmartbmsutilRunInfo, &_gasData);
   Serial.println("ScaleCurrentWeight drawed");
+  return true;
 }
 
 ScaleCurrentWeight scaleutilScaleCurrentWeight(byte *buffer, int size) {
@@ -83,12 +88,13 @@ void scaleutilPrintScaleCurrentWeight(ScaleCurrentWeight *scaleCurrentWeight) {
 /**
  * Send command to get ScaleCurrentWeight data (non blocking)
  */
-void scaleutilSendCommandScaleCurrentWeight() {
+void scaleutilSendCommandScaleCurrentWeightAsync() {
   Serial.println("Sending Command for ScaleCurrentWeight"); 
   int size =  sizeof(COMMAND_READ_WEIGHT);
   byte buffer[size];
   for (int i = 0; i < size; i++) {
     buffer[i] = (byte) COMMAND_READ_WEIGHT[i];
   }
+  bluetoothDataReceived = false;
   bluetoothSendByteArray(buffer, sizeof(buffer));
 }
