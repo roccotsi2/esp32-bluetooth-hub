@@ -50,8 +50,8 @@ bool scaleutilDataReceived(byte *pData, size_t length) {
   
   scaleutilUpdateGasData(&scaleCurrentWeight);
   
-  displayDrawBmsAndGasOverview(&_currentSmartbmsutilRunInfo, &_gasData);
-  Serial.println("ScaleCurrentWeight drawed");
+  /*displayDrawBmsAndGasOverview(&_currentSmartbmsutilRunInfo, &_gasData);
+  Serial.println("ScaleCurrentWeight drawed");*/
   return true;
 }
 

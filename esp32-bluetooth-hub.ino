@@ -44,8 +44,7 @@ static BLEUUID charWriteUUIDScale("71c90414-1860-11ec-9621-0242ac130002");
 
 // variables
 uint8_t *frameBuffer;
-unsigned long lastMillisMeasuredBms = 0;
-unsigned long lastMillisMeasuredScale = 0;
+unsigned long lastMillisMeasured = 0; // for BMS and scale
 int counter = 0;
 SmartbmsutilRunInfo _currentSmartbmsutilRunInfo;
 GasData _gasData;
@@ -83,7 +82,7 @@ void switchBluetoothEnabledState() {
   }
 }
 
-void fetchAndDisplayBmsData() {
+void fetchBmsData() {
   Serial.println("Fetch current RunInfo");
   bluetoothDisconnect(); // disconnect to be sure that no former connection is established
   delay(200);
@@ -111,12 +110,12 @@ void fetchAndDisplayBmsData() {
     bmsConnectionSuccessful = false;
   }  
 
-  if (!bmsConnectionSuccessful) {
+  /*if (!bmsConnectionSuccessful) {
     displayDrawBmsAndGasOverview(&_currentSmartbmsutilRunInfo, &_gasData); // refresh the display to update the status
-  }
+  }*/
 }
 
-void fetchAndDisplayScaleData() {
+void fetchScaleData() {
   Serial.println("Fetch current scale data");
   bluetoothDisconnect(); // disconnect to be sure that no former connection is established
   delay(200);
@@ -145,9 +144,13 @@ void fetchAndDisplayScaleData() {
     scaleConnectionSuccessful = false;
   }  
 
-  if (!scaleConnectionSuccessful) {
+  /*if (!scaleConnectionSuccessful) {
     displayDrawBmsAndGasOverview(&_currentSmartbmsutilRunInfo, &_gasData); // refresh the display to update the status
-  }
+  }*/
+}
+
+void displayBmsAndScaleData() {
+  displayDrawBmsAndGasOverview(&_currentSmartbmsutilRunInfo, &_gasData);
 }
 
 void setup() {
@@ -184,30 +187,26 @@ void setup() {
     smartbmsdemoFillSmartbmsutilRunInfo(&runInfo);
     displayDrawContentBmsDetail(&runInfo);
   }
-
-  // TODO: remove demo scale data
-  /*_gasData.fillingLevelPercent = 78;
-  _gasData.nettoWeightGram = (11000 * _gasData.fillingLevelPercent) / 100;
-  _gasData.remainingDays = 12;
-  _gasData.usagePerDayGram = _gasData.nettoWeightGram / _gasData.remainingDays;*/
-
   Serial.println("Setup finished");
 }
 
 void loop() {
   if (DEMO_MODE == 0 && !bluetoothDisabled) {
     unsigned long currentMillis = millis();
-    if (bmsFound && !configuration.skipBms && (lastMillisMeasuredBms == 0 || ((currentMillis - lastMillisMeasuredBms) > configuration.updateIntervalBmsSeconds * 1000))) {
-      lastMillisMeasuredBms = currentMillis;
-      fetchAndDisplayBmsData();
-
+    if (lastMillisMeasured == 0 || ((currentMillis - lastMillisMeasured) > configuration.updateIntervalSeconds * 1000)) {
+      lastMillisMeasured = currentMillis;
+      
+      // next values needs to be fetched (BMS and scale)
+      if (bmsFound && !configuration.skipBms) {
+        fetchBmsData();
+      }
+      delay(100); // to give other theads enough time
+      if (scaleFound && !configuration.skipScale) {
+        fetchScaleData();
+      }
+      displayBmsAndScaleData();
       Serial.print("Free heap: ");
       Serial.println(ESP.getFreeHeap());
-    }
-
-    if (scaleFound && !configuration.skipScale && (lastMillisMeasuredScale == 0 || ((currentMillis - lastMillisMeasuredScale) > configuration.updateIntervalScaleSeconds * 1000))) {
-      lastMillisMeasuredScale = currentMillis;
-      fetchAndDisplayScaleData();
     }
   }
 

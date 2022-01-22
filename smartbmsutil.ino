@@ -135,8 +135,8 @@ bool smartbmsutilDataReceived(byte *pData, size_t length) {
           _currentSmartbmsutilRunInfo = smartbmsutilGetRunInfo(smartBmsReceiveBuffer, indexSmartBmsReceiveBuffer);
           Serial.println("SmartbmsutilRunInfo created");
           bmsConnectionSuccessful = true;
-          displayDrawBmsAndGasOverview(&_currentSmartbmsutilRunInfo, &_gasData);
-          Serial.println("SmartbmsutilRunInfo drawed");
+          /*displayDrawBmsAndGasOverview(&_currentSmartbmsutilRunInfo, &_gasData);
+          Serial.println("SmartbmsutilRunInfo drawed");*/
           //smartbmsutilPrintRunInfo(&runInfo);
 
           // reset smartBmsReceiveBuffer
