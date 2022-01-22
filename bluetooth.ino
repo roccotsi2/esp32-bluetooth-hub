@@ -82,6 +82,8 @@ static void notifyCallbackBms(BLERemoteCharacteristic* pBLERemoteCharacteristic,
 
 static void notifyCallbackScale(BLERemoteCharacteristic* pBLERemoteCharacteristic, uint8_t* pData, size_t length, bool isNotify) {
   if (scaleutilDataReceived(pData, length)) {
+    lastMillisMeasuredScale = millis(); // update last measurement for calculation of gas usage
+    
     // disconnect after data was successful read
     bluetoothDisconnect();
     delay(200); // wait to be sure that connection is correctly closed

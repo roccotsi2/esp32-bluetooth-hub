@@ -9,12 +9,26 @@ const char COMMAND_READ_WEIGHT[] = "READ";
 const int SIZE_CURRENT_WEIGHT = sizeof(ScaleCurrentWeight);
 const int MAX_NETTO_WEIGHT = 11000;
 const int TARA_WEIGHT_GRAM = 5400;
+const unsigned int SECONDS_PER_DAY = 24 * 60 * 60;
 
 void scaleutilUpdateGasData(ScaleCurrentWeight *scaleCurrentWeight) {   
+  int oldNettoWeightGram = _gasData.nettoWeightGram;
+  
   _gasData.nettoWeightGram = scaleCurrentWeight->currentBruttoGram - TARA_WEIGHT_GRAM;
   _gasData.fillingLevelPercent = (_gasData.nettoWeightGram * 100) / MAX_NETTO_WEIGHT;
-  _gasData.usagePerDayGram = 715; // TODO: calculate by difference measurements
-  _gasData.remainingDays = _gasData.nettoWeightGram / _gasData.usagePerDayGram;
+
+  // calculate gas usage between current and last measurement
+  // TODO: calculate by using median of different measurements
+  if (lastMillisMeasuredScale > 0) {
+    // this is not the first measurement (at least 2 measurements needed for calculating gas usage)
+    int measuredIntervalSeconds = (millis() - lastMillisMeasuredScale) / 1000;
+    int usedGasGram = oldNettoWeightGram - _gasData.nettoWeightGram;
+    if (usedGasGram < 0)  {
+      usedGasGram = 0;
+    }
+    _gasData.usagePerDayGram = (usedGasGram * SECONDS_PER_DAY) / measuredIntervalSeconds;
+    _gasData.remainingDays =  (float)_gasData.nettoWeightGram / (float)_gasData.usagePerDayGram;
+  }
 }
 
 void scaleutilResetReceiveBuffer() {

@@ -43,9 +43,10 @@ static BLEUUID charReadUUIDScale("e8f1aaac-185e-11ec-9621-0242ac130002");
 static BLEUUID charWriteUUIDScale("71c90414-1860-11ec-9621-0242ac130002");
 
 // variables
-uint8_t *frameBuffer;
+uint8_t *frameBuffer; // for display
 unsigned long lastMillisMeasured = 0; // for BMS and scale
-int counter = 0;
+unsigned long lastMillisMeasuredScale = 0; // needed to calculate gas usage
+unsigned int counter = 0;
 SmartbmsutilRunInfo _currentSmartbmsutilRunInfo;
 GasData _gasData;
 SavedDataConfiguration configuration;
@@ -183,6 +184,7 @@ void setup() {
       Serial.println("Scale skipped");
     }
   } else {
+    // DEMO data
     SmartbmsutilRunInfo runInfo;
     smartbmsdemoFillSmartbmsutilRunInfo(&runInfo);
     displayDrawContentBmsDetail(&runInfo);

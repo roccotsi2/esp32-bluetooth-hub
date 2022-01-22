@@ -73,14 +73,14 @@ typedef struct gasData {
    int8_t fillingLevelPercent;
    int16_t nettoWeightGram;
    int16_t usagePerDayGram;
-   int16_t remainingDays;
+   float remainingDays;
 } __attribute__ ((packed)) GasData;
 
 // struct for saving data in EEPROM
 struct SavedDataConfiguration {
   std::string bluetoothAddressBms;
   std::string bluetoothAddressScale;
-  int updateIntervalSeconds = 10; // default value (for BMS and scale)
+  int updateIntervalSeconds = 60; // default value (for BMS and scale)
   bool skipBms = false; // default value
   bool skipScale = false; // default value
 };

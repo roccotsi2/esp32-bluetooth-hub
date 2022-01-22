@@ -438,7 +438,7 @@ void drawGasData(GasData *gasData) {
   
   currentY = currentY + textNormalHeight + textDistanceVertical;
   drawString(textSizeNormal, textXStart, currentY, "Restzeit:");
-  sprintf(text, "%d Tag(e)", gasData->remainingDays);
+  sprintf(text, "%.1f Tag(e)", gasData->remainingDays);
   drawString(textSizeNormal, textXStart + textNormalWidth + 20, currentY, text);
 }
 
