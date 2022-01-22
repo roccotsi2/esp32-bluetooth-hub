@@ -1,19 +1,77 @@
 //static boolean doConnect = false;
 //static boolean connected = false;
 static boolean doScan = false;
-static BLERemoteCharacteristic* pRemoteCharacteristicRead;
-static BLERemoteCharacteristic* pRemoteCharacteristicWrite;
+static BLERemoteCharacteristic* pRemoteCharacteristicReadBms;
+static BLERemoteCharacteristic* pRemoteCharacteristicWriteBms;
+static BLERemoteCharacteristic* pRemoteCharacteristicReadScale;
+static BLERemoteCharacteristic* pRemoteCharacteristicWriteScale;
 //static BLEAdvertisedDevice* myDevice;
 static std::string myDeviceAddresses[2];
 static BLEScan* pBLEScan;
-static BLEClient* pClient;
-byte currentDeviceNo = 0;
+static BLEClient* pClientBms;
+static BLEClient* pClientScale;
+byte currentDeviceNo = 0; // 0 = BMS, 1 = Scale
 byte countDevices = 0;
 byte scanDeviceIndex;
 char* scanName;
 BLEUUID scanServiceUuid;
 
-static void notifyCallback(BLERemoteCharacteristic* pBLERemoteCharacteristic, uint8_t* pData, size_t length, bool isNotify) {
+BLEClient* bluetoothGetClient(byte deviceIndex) {
+  if (deviceIndex == 0) {
+    return pClientBms;
+  } else if (deviceIndex == 1) {
+    return pClientScale;
+  } else {
+    Serial.print("ERROR: invalid deviceIndex: ");
+    Serial.println(deviceIndex);
+    return NULL;
+  }
+}
+
+BLERemoteCharacteristic* bluetoothGetCharacteristic(byte deviceIndex, boolean read) {
+  if (deviceIndex == 0) {
+    // BMS
+    if (read) {
+      return pRemoteCharacteristicReadBms;
+    } else  {
+      return pRemoteCharacteristicWriteBms;
+    }
+  } else if (deviceIndex == 1) {
+    // Scale
+    if (read) {
+      return pRemoteCharacteristicReadScale;
+    } else  {
+      return pRemoteCharacteristicWriteScale;
+    }
+  } else {
+    Serial.print("ERROR bluetoothGetCharacteristic: invalid deviceIndex: ");
+    Serial.println(deviceIndex);
+    return NULL;
+  }
+}
+
+void bluetoothSetCharacteristic(byte deviceIndex, boolean read, BLERemoteCharacteristic* characteristic) {
+  if (deviceIndex == 0) {
+    // BMS
+    if (read) {
+      pRemoteCharacteristicReadBms = characteristic;
+    } else  {
+      pRemoteCharacteristicWriteBms = characteristic;
+    }
+  } else if (deviceIndex == 1) {
+    // Scale
+    if (read) {
+      pRemoteCharacteristicReadScale = characteristic;
+    } else  {
+      pRemoteCharacteristicWriteScale = characteristic;
+    }
+  } else {
+    Serial.print("ERROR bluetoothSetCharacteristic: invalid deviceIndex: ");
+    Serial.println(deviceIndex);
+  }
+}
+
+static void notifyCallbackBms(BLERemoteCharacteristic* pBLERemoteCharacteristic, uint8_t* pData, size_t length, bool isNotify) {
   if (smartbmsutilDataReceived(pData, length)) {
     // disconnect after data was successful read
     bluetoothDisconnect();
@@ -22,25 +80,33 @@ static void notifyCallback(BLERemoteCharacteristic* pBLERemoteCharacteristic, ui
   }
 }
 
-class MyClientCallback : public BLEClientCallbacks {
+static void notifyCallbackScale(BLERemoteCharacteristic* pBLERemoteCharacteristic, uint8_t* pData, size_t length, bool isNotify) {
+  // TODO
+}
+
+class MyClientCallbackBms : public BLEClientCallbacks {
   void onConnect(BLEClient* pclient) {
-    Serial.println("Connection established");
+    Serial.println("Connection established: BMS");
   }
 
   void onDisconnect(BLEClient* pclient) {
     //connected = false;
-    Serial.println("Connection lost");    
+    Serial.println("Connection lost: BMS");    
   }
 };
 
-void bluetoothListServices() {
-  /*std::map<std::string, BLERemoteService*>* input_map = pClient->getServices();
-  map<std::string, BLERemoteService*>::iterator it;
-  for (it = symbolTable.begin(); it != symbolTable.end(); it++)
-  {
-      Serial.println(it->first);
-  }*/
+class MyClientCallbackScale : public BLEClientCallbacks {
+  void onConnect(BLEClient* pclient) {
+    Serial.println("Connection established: Scale");
+  }
 
+  void onDisconnect(BLEClient* pclient) {
+    //connected = false;
+    Serial.println("Connection lost: Scale");    
+  }
+};
+
+/*void bluetoothListServices() {
   std::map<std::string, BLERemoteService*> *pRemoteServices = pClient->getServices();
 
   if (pRemoteServices == nullptr) {
@@ -51,10 +117,12 @@ void bluetoothListServices() {
   for (auto it=pRemoteServices->begin(); it!=pRemoteServices->end(); ++it) {
     Serial.println(it->first.c_str());
   }
-}
+}*/
 
 bool bluetoothConnectToServer(byte deviceIndex, BLEUUID serviceUUID, BLEUUID charReadUUID, BLEUUID charWriteUUID) {
   currentDeviceNo = deviceIndex;
+  BLEClient* pClient = bluetoothGetClient(currentDeviceNo);
+ 
   Serial.print("Forming a connection to ");
   Serial.println(myDeviceAddresses[currentDeviceNo].c_str());
 
@@ -86,8 +154,9 @@ bool bluetoothConnectToServer(byte deviceIndex, BLEUUID serviceUUID, BLEUUID cha
 
 
   // Obtain a reference to the characteristic for reading in the service of the remote BLE server.
-  pRemoteCharacteristicRead = pRemoteService->getCharacteristic(charReadUUID);
-  if (pRemoteCharacteristicRead == nullptr) {
+  BLERemoteCharacteristic* pRemoteCharacteristicReadLocal = pRemoteService->getCharacteristic(charReadUUID);
+  bluetoothSetCharacteristic(currentDeviceNo, true, pRemoteCharacteristicReadLocal); 
+  if (pRemoteCharacteristicReadLocal == nullptr) {
     Serial.print("Failed to find our characteristic UUID: ");
     Serial.println(charReadUUID.toString().c_str());
     bluetoothDisconnect();
@@ -96,8 +165,9 @@ bool bluetoothConnectToServer(byte deviceIndex, BLEUUID serviceUUID, BLEUUID cha
   Serial.println(" - Found our characteristic for reading");
 
   // Obtain a reference to the characteristic for writing in the service of the remote BLE server.
-  pRemoteCharacteristicWrite = pRemoteService->getCharacteristic(charWriteUUID);
-  if (pRemoteCharacteristicWrite == nullptr) {
+  BLERemoteCharacteristic* pRemoteCharacteristicWriteLocal = pRemoteService->getCharacteristic(charWriteUUID);
+  bluetoothSetCharacteristic(currentDeviceNo, false, pRemoteCharacteristicWriteLocal); 
+  if (pRemoteCharacteristicWriteLocal == nullptr) {
     Serial.print("Failed to find our characteristic UUID: ");
     Serial.println(charWriteUUID.toString().c_str());
     bluetoothDisconnect();
@@ -105,12 +175,18 @@ bool bluetoothConnectToServer(byte deviceIndex, BLEUUID serviceUUID, BLEUUID cha
   }
   Serial.println(" - Found our characteristic for writing");
 
-  if(pRemoteCharacteristicRead->canNotify()) {
+  if(pRemoteCharacteristicReadLocal->canNotify()) {
     Serial.println("Try to register for notification");
-    pRemoteCharacteristicRead->registerForNotify(notifyCallback);
+    if (currentDeviceNo == 0) {
+      pRemoteCharacteristicReadLocal->registerForNotify(notifyCallbackBms);
+    } else if (currentDeviceNo == 1) {
+      pRemoteCharacteristicReadLocal->registerForNotify(notifyCallbackScale);
+    }
     Serial.println("pRemoteCharacteristicRead: notification registered");
   } else {
     Serial.println("pRemoteCharacteristicRead cannot be notified");
+    bluetoothDisconnect();
+    return false;
   }
 
   Serial.println(" - Registered for Notification");
@@ -159,9 +235,11 @@ void bluetoothSetupBluetoothBle() {
   pBLEScan->setWindow(449);
   pBLEScan->setActiveScan(true);
 
-  // create and configure BLE client
-  pClient  = BLEDevice::createClient();
-  pClient->setClientCallbacks(new MyClientCallback());
+  // create and configure BLE clients
+  pClientBms  = BLEDevice::createClient();
+  pClientBms->setClientCallbacks(new MyClientCallbackBms());
+  pClientScale  = BLEDevice::createClient();
+  pClientScale->setClientCallbacks(new MyClientCallbackScale());
 }
 
 bool bluetoothScan(byte deviceIndex, char* name, BLEUUID serviceUuid) {
@@ -180,7 +258,7 @@ bool bluetoothScan(byte deviceIndex, char* name, BLEUUID serviceUuid) {
 }
 
 bool bluetoothIsConnected() {
-  //return connected;
+  BLEClient* pClient = bluetoothGetClient(currentDeviceNo);
   if (pClient != NULL) {
     return pClient->isConnected();
   } else {
@@ -201,6 +279,7 @@ bool bluetoothIsConnected() {
 }*/
 
 void bluetoothDisconnect() {
+  BLEClient* pClient = bluetoothGetClient(currentDeviceNo);
   if (bluetoothIsConnected()) {
     Serial.print("Disconnecting from: ");
     Serial.println(myDeviceAddresses[currentDeviceNo].c_str());
@@ -208,16 +287,16 @@ void bluetoothDisconnect() {
       pRemoteCharacteristicRead->registerForNotify(NULL);
     }*/
     pClient->disconnect();
-    //delete pRemoteCharacteristicRead;
-    //delete pRemoteCharacteristicWrite;
-    pRemoteCharacteristicRead = NULL;
-    pRemoteCharacteristicWrite = NULL;
+    bluetoothSetCharacteristic(currentDeviceNo, true, NULL);
+    bluetoothSetCharacteristic(currentDeviceNo, false, NULL);
     //connected = false;
     Serial.println("Disconnected");
   }
 }
 
 void bluetoothSendByteArray(byte *buffer, int dataLength) {
+  BLERemoteCharacteristic* charWrite = bluetoothGetCharacteristic(currentDeviceNo, false);
+  
   //Serial.print("Sending: ");
   //hexutilPrintByteArrayInHex(buffer, dataLength);
   int sentBytes = 0;
@@ -228,13 +307,14 @@ void bluetoothSendByteArray(byte *buffer, int dataLength) {
     for (int i = 0; i < countBytes; i++) {
       tmpBuffer[i] = buffer[sentBytes + i];
     }
-    pRemoteCharacteristicWrite->writeValue(tmpBuffer, countBytes); 
+    charWrite->writeValue(tmpBuffer, countBytes); 
     //pRemoteCharacteristicWrite->notify();
     sentBytes = sentBytes + countBytes;
   }
 }
 
 std::string bluetoothReadData() {
-  std::string value = pRemoteCharacteristicRead->readValue();
+  BLERemoteCharacteristic* charRead = bluetoothGetCharacteristic(currentDeviceNo, true);
+  std::string value = charRead->readValue();
   return value;
 }
