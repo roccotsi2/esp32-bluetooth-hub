@@ -2,8 +2,12 @@
 // Format of answer: 16bit brutto weight in gram (big endian)
 
 #define RECEIVE_BUFFER_SIZE 10
+#define USAGE_BUFFER_SIZE 100
 
 byte scaleReceiveBuffer[RECEIVE_BUFFER_SIZE];
+int16_t usagePerDayGramBuffer[USAGE_BUFFER_SIZE] = {0};
+uint8_t usagePerDayGramBufferCount = 0;
+uint8_t usagePerDayGramBufferIndex = 0;
 
 const char COMMAND_READ_WEIGHT[] = "READ";
 const int SIZE_CURRENT_WEIGHT = sizeof(ScaleCurrentWeight);
@@ -11,14 +15,34 @@ const int MAX_NETTO_WEIGHT = 11000;
 const int TARA_WEIGHT_GRAM = 5400;
 const unsigned int SECONDS_PER_DAY = 24 * 60 * 60;
 
+void scaleutilAddUsagePerDayGramBuffer(int16_t value) {
+  // ring buffer
+  usagePerDayGramBuffer[usagePerDayGramBufferIndex] = value;
+  usagePerDayGramBufferIndex++;
+  if (usagePerDayGramBufferIndex == USAGE_BUFFER_SIZE) {
+    usagePerDayGramBufferIndex = 0;
+    
+  }
+  if (usagePerDayGramBufferCount < USAGE_BUFFER_SIZE) {
+    usagePerDayGramBufferCount++;
+  }
+}
+
+int16_t scaleutilGetMedianUsagePerDayGram() {
+  uint32_t sum = 0;
+  for (int i = 0; i < usagePerDayGramBufferCount; i++) {
+    sum = sum + usagePerDayGramBuffer[i];
+  }
+  return sum / usagePerDayGramBufferCount;
+}
+
 void scaleutilUpdateGasData(ScaleCurrentWeight *scaleCurrentWeight) {   
   int oldNettoWeightGram = _gasData.nettoWeightGram;
   
   _gasData.nettoWeightGram = scaleCurrentWeight->currentBruttoGram - TARA_WEIGHT_GRAM;
   _gasData.fillingLevelPercent = (_gasData.nettoWeightGram * 100) / MAX_NETTO_WEIGHT;
 
-  // calculate gas usage between current and last measurement
-  // TODO: calculate by using median of different measurements
+  // calculate gas usage between current and last measurement. Use median of last measurements
   if (lastMillisMeasuredScale > 0) {
     // this is not the first measurement (at least 2 measurements needed for calculating gas usage)
     int measuredIntervalSeconds = (millis() - lastMillisMeasuredScale) / 1000;
@@ -26,7 +50,11 @@ void scaleutilUpdateGasData(ScaleCurrentWeight *scaleCurrentWeight) {
     if (usedGasGram < 0)  {
       usedGasGram = 0;
     }
-    _gasData.usagePerDayGram = (usedGasGram * SECONDS_PER_DAY) / measuredIntervalSeconds;
+    int16_t currentUsagePerDayGram = (usedGasGram * SECONDS_PER_DAY) / measuredIntervalSeconds;
+    if (currentUsagePerDayGram > 0) {
+      scaleutilAddUsagePerDayGramBuffer(currentUsagePerDayGram);
+    }
+    _gasData.usagePerDayGram = scaleutilGetMedianUsagePerDayGram();
     _gasData.remainingDays =  (float)_gasData.nettoWeightGram / (float)_gasData.usagePerDayGram;
   }
 }
