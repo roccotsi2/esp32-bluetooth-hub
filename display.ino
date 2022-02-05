@@ -467,7 +467,12 @@ void displayDrawBmsAndGasOverview(SmartbmsutilRunInfo *runInfo, GasData *gasData
   clearFrameBuffer();
   drawHeader("");
   drawBmsSectionBorders(false);
-  drawBmsOverviewData(runInfo, true);
-  drawGasData(gasData);
+  if (bmsConnectionSuccessful) {
+    drawBmsOverviewData(runInfo, true);
+  }
+  if (scaleConnectionSuccessful) {
+    drawGasData(gasData);
+  }
+  
   updateDisplay(); 
 }
