@@ -42,6 +42,8 @@ static BLEUUID serviceUUIDScale("df469ada-185e-11ec-9621-0242ac130002");
 static BLEUUID charReadUUIDScale("e8f1aaac-185e-11ec-9621-0242ac130002");
 static BLEUUID charWriteUUIDScale("71c90414-1860-11ec-9621-0242ac130002");
 
+static SemaphoreHandle_t mutexDisplay;
+
 // variables
 uint8_t *frameBuffer; // for display
 unsigned long lastMillisMeasured = 0; // for BMS and scale
@@ -110,10 +112,6 @@ void fetchBmsData() {
     Serial.println("Could not disconnect bluetooth, no data was sent");
     bmsConnectionSuccessful = false;
   }  
-
-  /*if (!bmsConnectionSuccessful) {
-    displayDrawBmsAndGasOverview(&_currentSmartbmsutilRunInfo, &_gasData); // refresh the display to update the status
-  }*/
 }
 
 void fetchScaleData() {
@@ -144,21 +142,38 @@ void fetchScaleData() {
     Serial.println("Could not disconnect bluetooth, no data was sent");
     scaleConnectionSuccessful = false;
   }  
-
-  /*if (!scaleConnectionSuccessful) {
-    displayDrawBmsAndGasOverview(&_currentSmartbmsutilRunInfo, &_gasData); // refresh the display to update the status
-  }*/
 }
 
-void displayBmsAndScaleData() {
-  displayDrawBmsAndGasOverview(&_currentSmartbmsutilRunInfo, &_gasData);
+void taskFetchAndDisplayBmsAndGasData(void * parameter) {
+  for(;;){ // infinite loop
+    if (DEMO_MODE == 0 && !bluetoothDisabled && (bmsFound || scaleFound)) {
+      unsigned long currentMillis = millis();
+      if (lastMillisMeasured == 0 || ((currentMillis - lastMillisMeasured) > configuration.updateIntervalSeconds * 1000)) {
+        lastMillisMeasured = currentMillis;
+        
+        // next values needs to be fetched (BMS and scale)
+        if (bmsFound && !configuration.skipBms) {
+          fetchBmsData();
+        }
+        if (scaleFound && !configuration.skipScale) {
+          fetchScaleData();
+        }
+        displayDrawBmsAndGasOverview(&_currentSmartbmsutilRunInfo, &_gasData);
+        Serial.print("Free heap: ");
+        Serial.println(ESP.getFreeHeap());
+      }
+    }
+    
+    // Pause the task again for 500ms
+    vTaskDelay(500 / portTICK_PERIOD_MS);
+  }
 }
 
 void setup() {
   Serial.begin(115200);
 
+  mutexDisplay = xSemaphoreCreateMutex();
   buttonsInit();
-
   displayInit();
   displayStartingMessage();
 
@@ -190,28 +205,20 @@ void setup() {
     displayDrawContentBmsDetail(&runInfo);
   }
   Serial.println("Setup finished");
+
+  // start tasks
+  xTaskCreatePinnedToCore(
+    taskFetchAndDisplayBmsAndGasData,     // Function that should be called
+    "taskFetchAndDisplayBmsAndGasData",   // Name of the task (for debugging)
+    10000,                                // Stack size (bytes)
+    NULL,                                 // Parameter to pass
+    1,                                    // Task priority
+    NULL,                                 // Task handle
+    0                                     // Core you want to run the task on (0 or 1)
+  );
 }
 
 void loop() {
-  if (DEMO_MODE == 0 && !bluetoothDisabled) {
-    unsigned long currentMillis = millis();
-    if (lastMillisMeasured == 0 || ((currentMillis - lastMillisMeasured) > configuration.updateIntervalSeconds * 1000)) {
-      lastMillisMeasured = currentMillis;
-      
-      // next values needs to be fetched (BMS and scale)
-      if (bmsFound && !configuration.skipBms) {
-        fetchBmsData();
-      }
-      delay(100); // to give other theads enough time
-      if (scaleFound && !configuration.skipScale) {
-        fetchScaleData();
-      }
-      displayBmsAndScaleData();
-      Serial.print("Free heap: ");
-      Serial.println(ESP.getFreeHeap());
-    }
-  }
-
   int buttonPress = buttonsCheckButtonPressed(GPIO_3);
   if (buttonPress == BUTTON_SHORT_PRESSED) {
     Serial.println("Sel pressed");
@@ -220,5 +227,6 @@ void loop() {
     switchBluetoothEnabledState();
   }
 
-  delay(100); // to give other theads enough time
+  // Pause the task again for 100ms
+  vTaskDelay(100 / portTICK_PERIOD_MS);
 }

@@ -170,6 +170,12 @@ void drawBattery(int x, int y, int length, int height, char *text) {
   drawString(textSize, x + length/2 - textWidth/2, y + height/2 + textHeight/2, text);
 }
 
+void drawBluetoothState() {
+  if (!bluetoothDisabled) {
+    drawBluetoothSymbol(580, 5, 30);
+  }
+}
+
 void drawHeader(char *title) {
   // title
   drawString(24, 0, 37, title);
@@ -195,10 +201,7 @@ void drawHeader(char *title) {
   // vertical line right from fifth button
   drawVLine(560, 0, 40, COLOR_BLACK, 2);
 
-  // Connection states
-  if (!bluetoothDisabled) {
-    drawBluetoothSymbol(580, 5, 30);
-  }
+  drawBluetoothState();
   
   //int textHeight = 0;
   //int textWidth = 0;
@@ -443,6 +446,7 @@ void drawGasData(GasData *gasData) {
 }
 
 void displayStartingMessage() {
+  xSemaphoreTake(mutexDisplay, portMAX_DELAY);
   clearFrameBuffer();
   drawHeader("");
   int textHeight = 0;
@@ -451,9 +455,11 @@ void displayStartingMessage() {
   getTextWidthAndHeight(18, text, &textWidth, &textHeight);
   drawString(18, EPD_WIDTH / 2 - textWidth / 2, EPD_HEIGHT / 2, text);
   updateDisplay();
+  xSemaphoreGive(mutexDisplay);
 }
 
 void displayDrawContentBmsDetail(SmartbmsutilRunInfo *runInfo) {
+  xSemaphoreTake(mutexDisplay, portMAX_DELAY);
   clearFrameBuffer();
   drawHeader("BMS");
   drawBmsSectionBorders(true);
@@ -461,9 +467,11 @@ void displayDrawContentBmsDetail(SmartbmsutilRunInfo *runInfo) {
   drawBmsBatteriesOnRightSide(runInfo);
   drawBmsTemperatures(runInfo);   
   updateDisplay();
+  xSemaphoreGive(mutexDisplay);
 }
 
 void displayDrawBmsAndGasOverview(SmartbmsutilRunInfo *runInfo, GasData *gasData) {
+  xSemaphoreTake(mutexDisplay, portMAX_DELAY);
   clearFrameBuffer();
   drawHeader("");
   drawBmsSectionBorders(false);
@@ -475,4 +483,5 @@ void displayDrawBmsAndGasOverview(SmartbmsutilRunInfo *runInfo, GasData *gasData
   }
   
   updateDisplay(); 
+  xSemaphoreGive(mutexDisplay);
 }
