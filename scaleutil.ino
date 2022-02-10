@@ -46,16 +46,30 @@ void scaleutilUpdateGasData(ScaleCurrentWeight *scaleCurrentWeight) {
   if (lastMillisMeasuredScale > 0) {
     // this is not the first measurement (at least 2 measurements needed for calculating gas usage)
     int measuredIntervalSeconds = (millis() - lastMillisMeasuredScale) / 1000;
-    int usedGasGram = oldNettoWeightGram - _gasData.nettoWeightGram;
-    if (usedGasGram < 0)  {
-      usedGasGram = 0;
+    if (measuredIntervalSeconds > 0) {
+      int usedGasGram = oldNettoWeightGram - _gasData.nettoWeightGram;
+      if (usedGasGram < 0)  {
+        usedGasGram = 0;
+      }
+      int16_t currentUsagePerDayGram = (usedGasGram * SECONDS_PER_DAY) / measuredIntervalSeconds;
+      if (currentUsagePerDayGram > 0) {
+        scaleutilAddUsagePerDayGramBuffer(currentUsagePerDayGram);
+      }
+      _gasData.usagePerDayGram = scaleutilGetMedianUsagePerDayGram();
+      if (_gasData.usagePerDayGram > 0) {
+        _gasData.remainingDays =  (float)_gasData.nettoWeightGram / (float)_gasData.usagePerDayGram;
+      } else {
+        // with usage of 0 gram, remaining days cannot be calculated
+        _gasData.remainingDays = -1;
+      }
+    } else {
+      Serial.print("ERROR: scaleutilUpdateGasData: measuredIntervalSeconds = ");
+      Serial.println(measuredIntervalSeconds);
+      Serial.println("No Gas data updated");
     }
-    int16_t currentUsagePerDayGram = (usedGasGram * SECONDS_PER_DAY) / measuredIntervalSeconds;
-    if (currentUsagePerDayGram > 0) {
-      scaleutilAddUsagePerDayGramBuffer(currentUsagePerDayGram);
-    }
-    _gasData.usagePerDayGram = scaleutilGetMedianUsagePerDayGram();
-    _gasData.remainingDays =  (float)_gasData.nettoWeightGram / (float)_gasData.usagePerDayGram;
+  } else {
+    // first measurement: with usage of 0 gram, remaining days cannot be calculated
+    _gasData.remainingDays = -1;
   }
 }
 

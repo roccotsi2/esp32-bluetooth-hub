@@ -215,6 +215,12 @@ void drawHeader(char *title) {
   //getTextWidthAndHeight(12, textBmsConnection, &textWidth, &textHeight);
     drawString(12, 580 + 40 + 70, 27, "Gas");
   }
+
+  // TODO: remove
+  // display num of connects
+  char text[10];
+  sprintf(text, "%d", counterConnects);
+  drawString(12, 580 + 40 + 70 + 70, 27, text);
 }
 
 void drawBmsSectionBorders(boolean devideRightArea) {
@@ -441,8 +447,11 @@ void drawGasData(GasData *gasData) {
   
   currentY = currentY + textNormalHeight + textDistanceVertical;
   drawString(textSizeNormal, textXStart, currentY, "Restzeit:");
-  sprintf(text, "%.1f Tag(e)", gasData->remainingDays);
-  drawString(textSizeNormal, textXStart + textNormalWidth + 20, currentY, text);
+  if (gasData->remainingDays >= 0) {
+    // display remaining days only if remaining days >= 0
+    sprintf(text, "%.1f Tag(e)", gasData->remainingDays);
+    drawString(textSizeNormal, textXStart + textNormalWidth + 20, currentY, text);
+  }
 }
 
 void displayStartingMessage() {
