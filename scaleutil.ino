@@ -29,6 +29,9 @@ void scaleutilAddUsagePerDayGramBuffer(int16_t value) {
 }
 
 int16_t scaleutilGetMedianUsagePerDayGram() {
+  if (usagePerDayGramBufferCount == 0) {
+    return 0;
+  }
   uint32_t sum = 0;
   for (int i = 0; i < usagePerDayGramBufferCount; i++) {
     sum = sum + usagePerDayGramBuffer[i];
