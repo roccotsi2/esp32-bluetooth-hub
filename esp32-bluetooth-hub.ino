@@ -48,7 +48,7 @@ static SemaphoreHandle_t mutexDisplay;
 uint8_t *frameBuffer; // for display
 unsigned long lastMillisMeasured = 0; // for BMS and scale
 unsigned long lastMillisMeasuredScale = 0; // needed to calculate gas usage
-unsigned int counter = 0;
+uint16_t counterConnects = 0;
 SmartbmsutilRunInfo _currentSmartbmsutilRunInfo;
 GasData _gasData;
 SavedDataConfiguration configuration;
@@ -91,9 +91,9 @@ void fetchBmsData() {
   delay(200);
   if (!bluetoothIsConnected()) {
     if (bluetoothConnectToServer(DEVICE_INDEX_BMS, serviceUUIDBms, charReadUUIDBms, charWriteUUIDBms)) {
-      counter++;
+      counterConnects++;
       Serial.print("# Connects: ");
-      Serial.println(counter);
+      Serial.println(counterConnects);
     
       if (bluetoothIsConnected()) {
         smartbmsutilSendCommandRunInfoAsync(); // send command async, data is displayed by callback
@@ -121,9 +121,9 @@ void fetchScaleData() {
   if (!bluetoothIsConnected()) {
     Serial.println("Calling bluetoothConnectToServer");
     if (bluetoothConnectToServer(DEVICE_INDEX_SCALE, serviceUUIDScale, charReadUUIDScale, charWriteUUIDScale)) {
-      counter++;
+      counterConnects++;
       Serial.print("# Connects: ");
-      Serial.println(counter);
+      Serial.println(counterConnects);
     
       if (bluetoothIsConnected()) {
         scaleutilSendCommandScaleCurrentWeightAsync(); // send command async, data is displayed by callback
