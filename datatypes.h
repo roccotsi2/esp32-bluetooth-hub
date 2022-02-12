@@ -80,7 +80,7 @@ typedef struct gasData {
 struct SavedDataConfiguration {
   std::string bluetoothAddressBms;
   std::string bluetoothAddressScale;
-  int updateIntervalSeconds = 60; // default value (for BMS and scale)
+  int updateIntervalSeconds = 30; // default value (for BMS and scale)
   bool skipBms = false; // default value
   bool skipScale = false; // default value
 };
