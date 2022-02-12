@@ -72,6 +72,12 @@ void bluetoothSetCharacteristic(byte deviceIndex, boolean read, BLERemoteCharact
 }
 
 static void notifyCallbackBms(BLERemoteCharacteristic* pBLERemoteCharacteristic, uint8_t* pData, size_t length, bool isNotify) {
+  if (bluetoothDataReceived == true) {
+    // nothing to do, as we already received the answer (sometimes there are two notifications)
+    Serial.println("Received BMS notification twice. Skipped");
+    return;
+  }
+  
   if (smartbmsutilDataReceived(pData, length)) {
     // disconnect after data was successful read
     bluetoothDisconnect();
@@ -81,6 +87,12 @@ static void notifyCallbackBms(BLERemoteCharacteristic* pBLERemoteCharacteristic,
 }
 
 static void notifyCallbackScale(BLERemoteCharacteristic* pBLERemoteCharacteristic, uint8_t* pData, size_t length, bool isNotify) {
+  if (bluetoothDataReceived == true) {
+    // nothing to do, as we already received the answer (sometimes there are two notifications)
+    Serial.println("Received Scale notification twice. Skipped");
+    return;
+  }
+  
   if (scaleutilDataReceived(pData, length)) {
     lastMillisMeasuredScale = millis(); // update last measurement for calculation of gas usage
     
