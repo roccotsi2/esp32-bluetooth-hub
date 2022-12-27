@@ -1,5 +1,18 @@
 // about 93 pixel per cm
 
+void displayClearTouchData() {
+  touchutilInitialize();
+  buttonIdSetupHeader = -1;
+  buttonIdSetupBms = -1;
+  buttonIdSetupGas = -1;
+  buttonIdSetupBmsEnable = -1;
+}
+
+void displayClearDisplayAndTouchControls() {
+  clearFrameBuffer();
+  displayClearTouchData(); 
+}
+
 void clearFrameBuffer() {
   memset(frameBuffer, 0xFF, EPD_WIDTH * EPD_HEIGHT / 2);
 }
@@ -8,7 +21,7 @@ void displayInit() {
   epd_init();
   frameBuffer = (uint8_t *)ps_calloc(sizeof(uint8_t), EPD_WIDTH * EPD_HEIGHT / 2);
   if (!frameBuffer) Serial.println("Memory alloc failed!");
-  clearFrameBuffer();
+  displayClearDisplayAndTouchControls();
 }
 
 void updateDisplay() {
@@ -215,6 +228,10 @@ void drawHeader(char *title) {
   //getTextWidthAndHeight(12, textBmsConnection, &textWidth, &textHeight);
     drawString(12, 580 + 40 + 70, 27, "Gas");
   }
+
+  // draw button for setup menu
+  buttonIdSetupHeader = touchutilGetButtonIdByIndex(touchutilAddButton(580 + 40 + 70 + 70 + 70, 5, 40, 30, "", true, frameBuffer));
+  drawString(12, 580 + 40 + 70 + 70 + 70 + 10, 23, "..."); // draw 
 
   // TODO: remove
   // display num of connects
@@ -456,7 +473,7 @@ void drawGasData(GasData *gasData) {
 
 void displayStartingMessage() {
   xSemaphoreTake(mutexDisplay, portMAX_DELAY);
-  clearFrameBuffer();
+  displayClearDisplayAndTouchControls();
   drawHeader("");
   int textHeight = 0;
   int textWidth = 0;
@@ -469,7 +486,7 @@ void displayStartingMessage() {
 
 void displayDrawContentBmsDetail(SmartbmsutilRunInfo *runInfo) {
   xSemaphoreTake(mutexDisplay, portMAX_DELAY);
-  clearFrameBuffer();
+  displayClearDisplayAndTouchControls();
   drawHeader("BMS");
   drawBmsSectionBorders(true);
   drawBmsOverviewData(runInfo, false);
@@ -481,7 +498,7 @@ void displayDrawContentBmsDetail(SmartbmsutilRunInfo *runInfo) {
 
 void displayDrawBmsAndGasOverview(SmartbmsutilRunInfo *runInfo, GasData *gasData) {
   xSemaphoreTake(mutexDisplay, portMAX_DELAY);
-  clearFrameBuffer();
+  displayClearDisplayAndTouchControls();
   drawHeader("");
   drawBmsSectionBorders(false);
   if (bmsConnectionSuccessful) {
@@ -490,6 +507,37 @@ void displayDrawBmsAndGasOverview(SmartbmsutilRunInfo *runInfo, GasData *gasData
   if (scaleConnectionSuccessful) {
     drawGasData(gasData);
   }
+  
+  updateDisplay(); 
+  xSemaphoreGive(mutexDisplay);
+}
+
+void displaySetupMenuMain() {
+  xSemaphoreTake(mutexDisplay, portMAX_DELAY);
+  
+  displayClearDisplayAndTouchControls();
+  drawHeader("Setup");
+  buttonIdSetupBms = touchutilGetButtonIdByIndex(touchutilAddButton(20, 80, 150, 50, "BMS", true, frameBuffer));
+  buttonIdSetupGas = touchutilGetButtonIdByIndex(touchutilAddButton(20, 200, 150, 50, "Gas", true, frameBuffer));
+  
+  updateDisplay(); 
+  xSemaphoreGive(mutexDisplay);
+}
+
+void displaySetupBms() {
+  xSemaphoreTake(mutexDisplay, portMAX_DELAY);
+  
+  displayClearDisplayAndTouchControls();
+  drawHeader("Setup");
+
+  drawString(18, 20, 105, "BMS:");
+  char text[4];
+  if (!configuration.skipBms) {
+    strncpy(text, "ON", sizeof(text));
+  } else {
+    strncpy(text, "OFF", sizeof(text));
+  }
+  buttonIdSetupBmsEnable = touchutilGetButtonIdByIndex(touchutilAddButton(125, 65, 100, 50, text, true, frameBuffer));
   
   updateDisplay(); 
   xSemaphoreGive(mutexDisplay);

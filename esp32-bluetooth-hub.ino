@@ -10,6 +10,10 @@
 #include "opensans12b.h"
 #include "opensans18b.h"
 #include "opensans24b.h"
+#include "firasans.h"
+#include <Wire.h>
+#include <touch.h>
+#include "touchutil_datatypes.h"
 
 #define GPIO_1        35 // <
 #define GPIO_2        34 // >
@@ -19,9 +23,11 @@
 #define COLOR_GREY    0x88
 #define COLOR_BLACK   0x00
 
+#define TOUCH_INT     13
+
 // 0: bluetooth connection will be established
 // 1: test values instead of bluetooth connection
-#define DEMO_MODE 0
+#define DEMO_MODE 1
 
 // define button pressed values
 const byte BUTTON_NOT_PRESSED = 0;
@@ -58,6 +64,14 @@ bool bmsConnectionSuccessful = false; // stores if the last connection attemp wa
 bool scaleConnectionSuccessful = false; // stores if the last connection attemp was successful
 bool bluetoothDataReceived = false; // set to true, if data was successfull received
 bool bluetoothDisabled = false; // if set to true, no connection via bluetooth is done
+TouchClass touch;
+
+// Touch variables
+char pressedListBoxItem[30];
+int buttonIdSetupHeader;
+int buttonIdSetupBms;
+int buttonIdSetupGas;
+int buttonIdSetupBmsEnable;
 
 bool waitUntilDataReceived(int timeoutSeconds) {
   unsigned long startMillis = millis();
@@ -169,11 +183,24 @@ void taskFetchAndDisplayBmsAndGasData(void * parameter) {
   }
 }
 
+void touchInit() {
+  pinMode(TOUCH_INT, INPUT_PULLUP);
+
+  Wire.begin(15, 14);
+
+  if (!touch.begin()) {
+    Serial.println("start touchscreen failed");
+    while (1);
+  }
+  Serial.println("Started Touchscreen poll...");
+}
+
 void setup() {
   Serial.begin(115200);
 
   mutexDisplay = xSemaphoreCreateMutex();
   buttonsInit();
+  touchInit();
   displayInit();
   displayStartingMessage();
 
@@ -218,7 +245,7 @@ void setup() {
   );
 }
 
-void loop() {
+void checkPhysicalButtons() {
   int buttonPress = buttonsCheckButtonPressed(GPIO_3);
   if (buttonPress == BUTTON_SHORT_PRESSED) {
     Serial.println("Sel pressed");
@@ -226,7 +253,42 @@ void loop() {
     Serial.println("Sel long pressed");
     switchBluetoothEnabledState();
   }
+}
+
+void checkTouchControls() {
+  if (digitalRead(TOUCH_INT)) {
+    touchutilCheckTouch(frameBuffer);
+    ButtonData buttonData;
+    if (touchutilGetPressedButton(&buttonData)) {
+      // button found -> buttonData is filled
+      Serial.print("Button pressed: ");
+      Serial.print(buttonData.text);        
+      Serial.print(" (ID = ");
+      Serial.print(buttonData.id);
+      Serial.println(")");
+      if (buttonData.id == buttonIdSetupHeader) {
+        Serial.println("Button for SETUP pressed");
+        displaySetupMenuMain();
+      } else if (buttonData.id == buttonIdSetupBms) {
+        Serial.println("Button for SETUP BMS pressed");
+        displaySetupBms();
+      } else if (buttonData.id == buttonIdSetupGas) {
+        Serial.println("Button for SETUP Gas pressed");
+      } else if (buttonData.id = buttonIdSetupBmsEnable) {
+        configuration.skipBms = !configuration.skipBms;
+        displaySetupBms();
+      }
+    }/* else if (touchutilGetPressedListBoxItem(pressedListBoxItem, sizeof(pressedListBoxItem))) {
+      Serial.print("ListBoxItem pressed: ");
+      Serial.println(pressedListBoxItem);        
+    }*/
+  }
+}
+
+void loop() {
+  checkPhysicalButtons();
+  checkTouchControls();
 
   // Pause the task again for 100ms
-  vTaskDelay(100 / portTICK_PERIOD_MS);
+  vTaskDelay(10 / portTICK_PERIOD_MS);
 }
