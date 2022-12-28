@@ -72,6 +72,7 @@ int buttonIdSetupHeader;
 int buttonIdSetupBms;
 int buttonIdSetupGas;
 int buttonIdSetupBmsEnable;
+int buttonIdSetupCancel;
 
 bool waitUntilDataReceived(int timeoutSeconds) {
   unsigned long startMillis = millis();
@@ -195,6 +196,17 @@ void touchInit() {
   Serial.println("Started Touchscreen poll...");
 }
 
+void showDataScreen() {
+  if (DEMO_MODE == 0) {
+    displayDrawBmsAndGasOverview(&_currentSmartbmsutilRunInfo, &_gasData);
+  } else {
+    // DEMO data
+    SmartbmsutilRunInfo runInfo;
+    smartbmsdemoFillSmartbmsutilRunInfo(&runInfo);
+    displayDrawContentBmsDetail(&runInfo);
+  }
+}
+
 void setup() {
   Serial.begin(115200);
 
@@ -204,10 +216,10 @@ void setup() {
   displayInit();
   displayStartingMessage();
 
-  if (DEMO_MODE == 0) {
-    Serial.println("Starting Arduino BLE Client application...");
-    bluetoothSetupBluetoothBle();
-    
+  Serial.println("Starting Arduino BLE Client application...");
+  bluetoothSetupBluetoothBle();
+
+  if (DEMO_MODE == 0) {    
     if (!configuration.skipBms) {
       bmsFound = bluetoothScan(DEVICE_INDEX_BMS, "DL-", serviceUUIDBms);
       Serial.print("bmsFound = ");
@@ -274,9 +286,12 @@ void checkTouchControls() {
         displaySetupBms();
       } else if (buttonData.id == buttonIdSetupGas) {
         Serial.println("Button for SETUP Gas pressed");
-      } else if (buttonData.id = buttonIdSetupBmsEnable) {
+      } else if (buttonData.id == buttonIdSetupBmsEnable) {
         configuration.skipBms = !configuration.skipBms;
         displaySetupBms();
+      } else if (buttonData.id == buttonIdSetupCancel) {
+        Serial.println("Button for SETUP Cancel pressed");
+        showDataScreen();
       }
     }/* else if (touchutilGetPressedListBoxItem(pressedListBoxItem, sizeof(pressedListBoxItem))) {
       Serial.print("ListBoxItem pressed: ");

@@ -6,6 +6,7 @@ void displayClearTouchData() {
   buttonIdSetupBms = -1;
   buttonIdSetupGas = -1;
   buttonIdSetupBmsEnable = -1;
+  buttonIdSetupCancel = -1;
 }
 
 void displayClearDisplayAndTouchControls() {
@@ -512,6 +513,12 @@ void displayDrawBmsAndGasOverview(SmartbmsutilRunInfo *runInfo, GasData *gasData
   xSemaphoreGive(mutexDisplay);
 }
 
+void displayDrawCancelButton() {
+  buttonIdSetupCancel = touchutilGetButtonIdByIndex(touchutilAddButton(EPD_WIDTH - 200, EPD_HEIGHT - 80, 150, 50, "Cancel", true, frameBuffer));
+  Serial.print("buttonIdSetupCancel: ");
+  Serial.println(buttonIdSetupCancel);
+}
+
 void displaySetupMenuMain() {
   xSemaphoreTake(mutexDisplay, portMAX_DELAY);
   
@@ -519,6 +526,7 @@ void displaySetupMenuMain() {
   drawHeader("Setup");
   buttonIdSetupBms = touchutilGetButtonIdByIndex(touchutilAddButton(20, 80, 150, 50, "BMS", true, frameBuffer));
   buttonIdSetupGas = touchutilGetButtonIdByIndex(touchutilAddButton(20, 200, 150, 50, "Gas", true, frameBuffer));
+  displayDrawCancelButton();
   
   updateDisplay(); 
   xSemaphoreGive(mutexDisplay);
@@ -538,6 +546,7 @@ void displaySetupBms() {
     strncpy(text, "OFF", sizeof(text));
   }
   buttonIdSetupBmsEnable = touchutilGetButtonIdByIndex(touchutilAddButton(125, 65, 100, 50, text, true, frameBuffer));
+  displayDrawCancelButton();
   
   updateDisplay(); 
   xSemaphoreGive(mutexDisplay);
