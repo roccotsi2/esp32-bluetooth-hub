@@ -514,7 +514,7 @@ void displayDrawBmsAndGasOverview(SmartbmsutilRunInfo *runInfo, GasData *gasData
 }
 
 void displayDrawCancelButton() {
-  buttonIdSetupCancel = touchutilGetButtonIdByIndex(touchutilAddButton(EPD_WIDTH - 200, EPD_HEIGHT - 80, 150, 50, "Cancel", true, frameBuffer));
+  buttonIdSetupCancel = touchutilGetButtonIdByIndex(touchutilAddButton(EPD_WIDTH - 240, EPD_HEIGHT - 80, 210, 50, "Schließen", true, frameBuffer));
   Serial.print("buttonIdSetupCancel: ");
   Serial.println(buttonIdSetupCancel);
 }
@@ -546,6 +546,45 @@ void displaySetupBms() {
     strncpy(text, "OFF", sizeof(text));
   }
   buttonIdSetupBmsEnable = touchutilGetButtonIdByIndex(touchutilAddButton(125, 65, 100, 50, text, true, frameBuffer));
+  displayDrawCancelButton();
+
+  if (strlen(configuration.bluetoothNameBms) > 0) {
+    char text[35];
+    sprintf(text, "Name: %s", configuration.bluetoothNameBms);
+    drawString(18, 20, 150, text);
+  }
+
+  buttonIdSetupBmsScanBluetooth = touchutilGetButtonIdByIndex(touchutilAddButton(20, 170, 190, 50, "Suchen...", true, frameBuffer));
+  
+  updateDisplay(); 
+  xSemaphoreGive(mutexDisplay);
+}
+
+void displayScanBluetoothRunning() {
+  xSemaphoreTake(mutexDisplay, portMAX_DELAY);
+  
+  displayClearDisplayAndTouchControls();
+  drawHeader("Setup");
+
+  drawString(18, 20, 105, "Suche läuft...");
+  
+  updateDisplay(); 
+  xSemaphoreGive(mutexDisplay);
+}
+
+void displayScanBluetoothResult() {
+  xSemaphoreTake(mutexDisplay, portMAX_DELAY);
+  
+  displayClearDisplayAndTouchControls();
+  drawHeader("Setup");
+
+  if (foundBluetoothDevices > 0) {
+    drawString(18, 20, 105, "Gefundene Bluetooth Geräte:");
+    touchutilAddListBox(1, 20, 130, 600, 400, "", frameBuffer, foundBluetoothNames, foundBluetoothDevices);
+  } else {
+    drawString(18, 20, 105, "Kein Bluetooth Gerät gefunden");
+    buttonIdSetupBmsScanBluetooth = touchutilGetButtonIdByIndex(touchutilAddButton(20, 170, 190, 50, "Suchen...", true, frameBuffer));
+  }
   displayDrawCancelButton();
   
   updateDisplay(); 

@@ -78,8 +78,10 @@ typedef struct gasData {
 
 // struct for saving data in EEPROM
 struct SavedDataConfiguration {
-  std::string bluetoothAddressBms;
-  std::string bluetoothAddressScale;
+  char bluetoothAddressBms[20];
+  char bluetoothNameBms[30];
+  char bluetoothAddressScale[20];
+  char bluetoothNameScale[30];
   int updateIntervalSeconds = 30; // default value (for BMS and scale)
   bool skipBms = false; // default value
   bool skipScale = false; // default value

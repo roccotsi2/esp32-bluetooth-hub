@@ -1,6 +1,6 @@
 //static boolean doConnect = false;
 //static boolean connected = false;
-static boolean doScan = false;
+//static boolean doScan = false;
 static BLERemoteCharacteristic* pRemoteCharacteristicReadBms;
 static BLERemoteCharacteristic* pRemoteCharacteristicWriteBms;
 static BLERemoteCharacteristic* pRemoteCharacteristicReadScale;
@@ -15,6 +15,8 @@ byte countDevices = 0;
 byte scanDeviceIndex;
 char* scanName;
 BLEUUID scanServiceUuid;
+
+bool scanRunning;
 
 BLEClient* bluetoothGetClient(byte deviceIndex) {
   if (deviceIndex == 0) {
@@ -145,7 +147,7 @@ bool bluetoothConnectToServer(byte deviceIndex, BLEUUID serviceUUID, BLEUUID cha
   Serial.print("Forming a connection to ");
   Serial.println(myDeviceAddresses[currentDeviceNo].c_str());
 
-  // Connect to the remove BLE Server.
+  // Connect to the remote BLE Server.
   int count = 0;
   boolean success = false;
   unsigned long lastMillis = millis();
@@ -231,13 +233,17 @@ class MyAdvertisedDeviceCallbacks: public BLEAdvertisedDeviceCallbacks {
     Serial.println(advertisedDevice.getName().rfind(scanName, 0));
     // We have found a device, let us now see if it contains the service we are looking for.
     if (advertisedDevice.getName().rfind(scanName, 0) == 0 && advertisedDevice.haveServiceUUID() && advertisedDevice.isAdvertisingService(scanServiceUuid)) {
-      BLEDevice::getScan()->stop();
+      //BLEDevice::getScan()->stop();
       //myDevice = new BLEAdvertisedDevice(advertisedDevice);
       //doConnect = true;
-      doScan = true;
-      Serial.println("Device found");
+      //doScan = true;
       countDevices++;
       myDeviceAddresses[scanDeviceIndex] = advertisedDevice.getAddress().toString().c_str();
+      if (foundBluetoothDevices < 10) {
+        foundBluetoothDevices++;
+        strcpy(foundBluetoothAddresses[foundBluetoothDevices-1], advertisedDevice.getAddress().toString().c_str());
+        strcpy(foundBluetoothNames[foundBluetoothDevices-1], advertisedDevice.getName().c_str());
+      }
     } // Found our server
   } // onResult
 }; // MyAdvertisedDeviceCallbacks
@@ -246,8 +252,7 @@ void bluetoothSetupBluetoothBle() {
   BLEDevice::init("");
 
   // Retrieve a Scanner and set the callback we want to use to be informed when we
-  // have detected a new device.  Specify that we want active scanning and start the
-  // scan to run for 5 seconds.
+  // have detected a new device.  Specify that we want active scanning
   pBLEScan = BLEDevice::getScan();
   pBLEScan->setAdvertisedDeviceCallbacks(new MyAdvertisedDeviceCallbacks());
   pBLEScan->setInterval(1349);
@@ -266,14 +271,30 @@ bool bluetoothScan(byte deviceIndex, char* name, BLEUUID serviceUuid) {
     Serial.println("Device index invalid");
     return false;
   }
+  if (scanRunning) {
+    Serial.println("Scan is already running");
+    return false;
+  }
+
+  scanRunning = true;
+
+  // reset the found device adresses + names
+  for (int i = 0; i < 10; i++) {
+    memset(foundBluetoothAddresses[i], 0, 20);
+    memset(foundBluetoothNames[i], 0, 20);
+  }
+  foundBluetoothDevices = 0;
+  
   scanDeviceIndex = deviceIndex;
   scanName = name;
   scanServiceUuid = serviceUuid;
   Serial.println("Start scan...");
   pBLEScan->start(20, false); // scan for 20 sec
   Serial.println("Scan finished");
+  scanRunning = false;
   
-  return myDeviceAddresses[scanDeviceIndex].length() > 0;
+  //return myDeviceAddresses[scanDeviceIndex].length() > 0;
+  return true;
 }
 
 bool bluetoothIsConnected() {
@@ -336,4 +357,28 @@ std::string bluetoothReadData() {
   BLERemoteCharacteristic* charRead = bluetoothGetCharacteristic(currentDeviceNo, true);
   std::string value = charRead->readValue();
   return value;
+}
+
+/*int bluetoothGetFoundBluetoothDevices() {
+  return foundBluetoothDevices;
+}
+
+bool bluetoothGetFoundBluetoothDeviceAddress(int deviceIndex, char *destArray) {
+  if (deviceIndex >= 0 && deviceIndex < foundBluetoothDevices) {
+    strcpy(destArray, foundBluetoothAddresses[deviceIndex]);
+    return true;
+  }
+  return false;
+}
+
+bool bluetoothGetFoundBluetoothDeviceName(int deviceIndex, char *destArray) {
+  if (deviceIndex >= 0 && deviceIndex < foundBluetoothDevices) {
+    strcpy(destArray, foundBluetoothNames[deviceIndex]);
+    return true;
+  }
+  return false;
+}*/
+
+bool bluetoothIsScanRunning() {
+  return scanRunning;
 }

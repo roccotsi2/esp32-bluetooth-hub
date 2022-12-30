@@ -73,6 +73,12 @@ int buttonIdSetupBms;
 int buttonIdSetupGas;
 int buttonIdSetupBmsEnable;
 int buttonIdSetupCancel;
+int buttonIdSetupBmsScanBluetooth;
+
+// Bluetooth variables
+char foundBluetoothAddresses[10][20]; // 10 adresses with each max. 20 characters
+char foundBluetoothNames[10][30]; // 10 names with each max. 30 characters
+int foundBluetoothDevices;
 
 bool waitUntilDataReceived(int timeoutSeconds) {
   unsigned long startMillis = millis();
@@ -207,6 +213,24 @@ void showDataScreen() {
   }
 }
 
+void startScanForBms() {
+  bmsFound = bluetoothScan(DEVICE_INDEX_BMS, "DL-", serviceUUIDBms);
+  Serial.print("bmsFound = ");
+  Serial.println(bmsFound);
+  /*for (int i = 0; i < bluetoothGetFoundBluetoothDevices(); i++) {
+    char address[20];
+    char name[30];
+    bool success = bluetoothGetFoundBluetoothDeviceAddress(i, address);
+    if (success) {
+      Serial.println(address);
+    }
+    success = bluetoothGetFoundBluetoothDeviceName(i, name);
+    if (success) {
+      Serial.println(name);
+    }
+  }*/
+}
+
 void setup() {
   Serial.begin(115200);
 
@@ -292,11 +316,22 @@ void checkTouchControls() {
       } else if (buttonData.id == buttonIdSetupCancel) {
         Serial.println("Button for SETUP Cancel pressed");
         showDataScreen();
+      } else if (buttonData.id == buttonIdSetupBmsScanBluetooth) {
+        displayScanBluetoothRunning();
+        startScanForBms();
+        displayScanBluetoothResult();
       }
-    }/* else if (touchutilGetPressedListBoxItem(pressedListBoxItem, sizeof(pressedListBoxItem))) {
+    } else if (touchutilGetPressedListBoxItem(pressedListBoxItem, sizeof(pressedListBoxItem))) {
       Serial.print("ListBoxItem pressed: ");
-      Serial.println(pressedListBoxItem);        
-    }*/
+      Serial.println(pressedListBoxItem); 
+      for (int i = 0; i < foundBluetoothDevices; i++) {
+        if (strcmp(pressedListBoxItem, foundBluetoothNames[i]) == 0) {
+          strcpy(configuration.bluetoothNameBms, foundBluetoothNames[i]);
+          strcpy(configuration.bluetoothAddressBms, foundBluetoothAddresses[i]);
+          displaySetupBms();   
+        }
+      }
+    }
   }
 }
 
