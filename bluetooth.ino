@@ -359,26 +359,6 @@ std::string bluetoothReadData() {
   return value;
 }
 
-/*int bluetoothGetFoundBluetoothDevices() {
-  return foundBluetoothDevices;
-}
-
-bool bluetoothGetFoundBluetoothDeviceAddress(int deviceIndex, char *destArray) {
-  if (deviceIndex >= 0 && deviceIndex < foundBluetoothDevices) {
-    strcpy(destArray, foundBluetoothAddresses[deviceIndex]);
-    return true;
-  }
-  return false;
-}
-
-bool bluetoothGetFoundBluetoothDeviceName(int deviceIndex, char *destArray) {
-  if (deviceIndex >= 0 && deviceIndex < foundBluetoothDevices) {
-    strcpy(destArray, foundBluetoothNames[deviceIndex]);
-    return true;
-  }
-  return false;
-}*/
-
 bool bluetoothIsScanRunning() {
   return scanRunning;
 }

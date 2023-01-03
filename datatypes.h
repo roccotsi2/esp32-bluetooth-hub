@@ -85,4 +85,6 @@ struct SavedDataConfiguration {
   int updateIntervalSeconds = 30; // default value (for BMS and scale)
   bool skipBms = false; // default value
   bool skipScale = false; // default value
+  byte crcHigh;
+  byte crcLow;
 };

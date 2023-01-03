@@ -14,6 +14,7 @@
 #include <Wire.h>
 #include <touch.h>
 #include "touchutil_datatypes.h"
+#include <EEPROM.h>
 
 #define GPIO_1        35 // <
 #define GPIO_2        34 // >
@@ -28,6 +29,9 @@
 // 0: bluetooth connection will be established
 // 1: test values instead of bluetooth connection
 #define DEMO_MODE 1
+
+// start address to read/write from/in EEPROM
+#define EEPROM_ADDRESS_CONFIGURATION  0
 
 // define button pressed values
 const byte BUTTON_NOT_PRESSED = 0;
@@ -72,6 +76,7 @@ int buttonIdSetupHeader;
 int buttonIdSetupBms;
 int buttonIdSetupGas;
 int buttonIdSetupBmsEnable;
+int buttonIdSetupSave;
 int buttonIdSetupCancel;
 int buttonIdSetupBmsScanBluetooth;
 
@@ -217,18 +222,6 @@ void startScanForBms() {
   bmsFound = bluetoothScan(DEVICE_INDEX_BMS, "DL-", serviceUUIDBms);
   Serial.print("bmsFound = ");
   Serial.println(bmsFound);
-  /*for (int i = 0; i < bluetoothGetFoundBluetoothDevices(); i++) {
-    char address[20];
-    char name[30];
-    bool success = bluetoothGetFoundBluetoothDeviceAddress(i, address);
-    if (success) {
-      Serial.println(address);
-    }
-    success = bluetoothGetFoundBluetoothDeviceName(i, name);
-    if (success) {
-      Serial.println(name);
-    }
-  }*/
 }
 
 void setup() {
@@ -239,6 +232,8 @@ void setup() {
   touchInit();
   displayInit();
   displayStartingMessage();
+
+  loadConfigurationFromEeprom();
 
   Serial.println("Starting Arduino BLE Client application...");
   bluetoothSetupBluetoothBle();
@@ -291,6 +286,40 @@ void checkPhysicalButtons() {
   }
 }
 
+void saveCurrentConfigurationToEeprom() {
+  byte buffer[sizeof(configuration)];
+  byte crcBuffer[2];
+  memcpy(buffer, &configuration, sizeof(configuration));  
+  smartbmsutilGetCRC(crcBuffer, buffer, sizeof(configuration) - 2);
+  configuration.crcHigh = crcBuffer[0];
+  configuration.crcLow = crcBuffer[1];
+  
+  EEPROM.begin(512);
+  EEPROM.put(EEPROM_ADDRESS_CONFIGURATION, configuration);
+  EEPROM.commit();
+  EEPROM.end();
+}
+
+void loadConfigurationFromEeprom() {
+  SavedDataConfiguration tempConfig;
+  EEPROM.begin(512);
+  EEPROM.get(EEPROM_ADDRESS_CONFIGURATION, tempConfig);
+  EEPROM.end();
+
+  // check CRC and copy to configuration
+  byte buffer[sizeof(tempConfig)];
+  byte crcBuffer[2];
+  memcpy(buffer, &tempConfig, sizeof(tempConfig)); 
+  smartbmsutilGetCRC(crcBuffer, buffer, sizeof(tempConfig) - 2);
+  if (tempConfig.crcHigh == crcBuffer[0] && tempConfig.crcLow == crcBuffer[1]) {
+    Serial.println("CRC check of configuration passed");
+    // CRC check passed -> copy tempConfig to configuration
+    memcpy(&configuration, &tempConfig, sizeof(configuration));
+  } else {
+    Serial.println("CRC check of configuration failed");
+  }
+}
+
 void checkTouchControls() {
   if (digitalRead(TOUCH_INT)) {
     touchutilCheckTouch(frameBuffer);
@@ -303,23 +332,23 @@ void checkTouchControls() {
       Serial.print(buttonData.id);
       Serial.println(")");
       if (buttonData.id == buttonIdSetupHeader) {
-        Serial.println("Button for SETUP pressed");
         displaySetupMenuMain();
       } else if (buttonData.id == buttonIdSetupBms) {
-        Serial.println("Button for SETUP BMS pressed");
         displaySetupBms();
       } else if (buttonData.id == buttonIdSetupGas) {
-        Serial.println("Button for SETUP Gas pressed");
+        // TODO
       } else if (buttonData.id == buttonIdSetupBmsEnable) {
         configuration.skipBms = !configuration.skipBms;
         displaySetupBms();
       } else if (buttonData.id == buttonIdSetupCancel) {
-        Serial.println("Button for SETUP Cancel pressed");
         showDataScreen();
       } else if (buttonData.id == buttonIdSetupBmsScanBluetooth) {
         displayScanBluetoothRunning();
         startScanForBms();
         displayScanBluetoothResult();
+      } else if (buttonData.id == buttonIdSetupSave) {
+        saveCurrentConfigurationToEeprom();
+        showDataScreen();
       }
     } else if (touchutilGetPressedListBoxItem(pressedListBoxItem, sizeof(pressedListBoxItem))) {
       Serial.print("ListBoxItem pressed: ");

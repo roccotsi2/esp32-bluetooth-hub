@@ -191,6 +191,11 @@ void drawBluetoothState() {
 }
 
 void drawHeader(char *title) {
+  // draw header with setup button
+  drawHeader(title, true);
+}
+
+void drawHeader(char *title, boolean drawSetupButton) {
   // title
   drawString(24, 0, 37, title);
 
@@ -230,9 +235,11 @@ void drawHeader(char *title) {
     drawString(12, 580 + 40 + 70, 27, "Gas");
   }
 
-  // draw button for setup menu
-  buttonIdSetupHeader = touchutilGetButtonIdByIndex(touchutilAddButton(580 + 40 + 70 + 70 + 70, 5, 40, 30, "", true, frameBuffer));
-  drawString(12, 580 + 40 + 70 + 70 + 70 + 10, 23, "..."); // draw 
+  if (drawSetupButton) {
+    // draw button for setup menu
+    buttonIdSetupHeader = touchutilGetButtonIdByIndex(touchutilAddButton(580 + 40 + 70 + 70 + 70, 5, 40, 30, "", true, frameBuffer));
+    drawString(12, 580 + 40 + 70 + 70 + 70 + 10, 23, "..."); // draw 
+  }
 
   // TODO: remove
   // display num of connects
@@ -515,15 +522,17 @@ void displayDrawBmsAndGasOverview(SmartbmsutilRunInfo *runInfo, GasData *gasData
 
 void displayDrawCancelButton() {
   buttonIdSetupCancel = touchutilGetButtonIdByIndex(touchutilAddButton(EPD_WIDTH - 240, EPD_HEIGHT - 80, 210, 50, "Schließen", true, frameBuffer));
-  Serial.print("buttonIdSetupCancel: ");
-  Serial.println(buttonIdSetupCancel);
+}
+
+void displayDrawSaveButton() {
+  buttonIdSetupSave = touchutilGetButtonIdByIndex(touchutilAddButton(EPD_WIDTH - 240, EPD_HEIGHT - 150, 210, 50, "Speichern", true, frameBuffer));
 }
 
 void displaySetupMenuMain() {
   xSemaphoreTake(mutexDisplay, portMAX_DELAY);
   
   displayClearDisplayAndTouchControls();
-  drawHeader("Setup");
+  drawHeader("Setup", false);
   buttonIdSetupBms = touchutilGetButtonIdByIndex(touchutilAddButton(20, 80, 150, 50, "BMS", true, frameBuffer));
   buttonIdSetupGas = touchutilGetButtonIdByIndex(touchutilAddButton(20, 200, 150, 50, "Gas", true, frameBuffer));
   displayDrawCancelButton();
@@ -536,7 +545,7 @@ void displaySetupBms() {
   xSemaphoreTake(mutexDisplay, portMAX_DELAY);
   
   displayClearDisplayAndTouchControls();
-  drawHeader("Setup");
+  drawHeader("Setup", false);
 
   drawString(18, 20, 105, "BMS:");
   char text[4];
@@ -547,6 +556,7 @@ void displaySetupBms() {
   }
   buttonIdSetupBmsEnable = touchutilGetButtonIdByIndex(touchutilAddButton(125, 65, 100, 50, text, true, frameBuffer));
   displayDrawCancelButton();
+  displayDrawSaveButton();
 
   if (strlen(configuration.bluetoothNameBms) > 0) {
     char text[35];
@@ -564,7 +574,7 @@ void displayScanBluetoothRunning() {
   xSemaphoreTake(mutexDisplay, portMAX_DELAY);
   
   displayClearDisplayAndTouchControls();
-  drawHeader("Setup");
+  drawHeader("Setup", false);
 
   drawString(18, 20, 105, "Suche läuft...");
   
@@ -576,7 +586,7 @@ void displayScanBluetoothResult() {
   xSemaphoreTake(mutexDisplay, portMAX_DELAY);
   
   displayClearDisplayAndTouchControls();
-  drawHeader("Setup");
+  drawHeader("Setup", false);
 
   if (foundBluetoothDevices > 0) {
     drawString(18, 20, 105, "Gefundene Bluetooth Geräte:");
