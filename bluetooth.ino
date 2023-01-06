@@ -238,7 +238,7 @@ class MyAdvertisedDeviceCallbacks: public BLEAdvertisedDeviceCallbacks {
       //doConnect = true;
       //doScan = true;
       countDevices++;
-      myDeviceAddresses[scanDeviceIndex] = advertisedDevice.getAddress().toString().c_str();
+      //myDeviceAddresses[scanDeviceIndex] = advertisedDevice.getAddress().toString().c_str();
       if (foundBluetoothDevices < 10) {
         foundBluetoothDevices++;
         strcpy(foundBluetoothAddresses[foundBluetoothDevices-1], advertisedDevice.getAddress().toString().c_str());
@@ -361,4 +361,10 @@ std::string bluetoothReadData() {
 
 bool bluetoothIsScanRunning() {
   return scanRunning;
+}
+
+void bluetoothSetDeviceAddress(byte deviceIndex, char *address) {
+  myDeviceAddresses[deviceIndex] = address;
+  Serial.print("Device address set: ");
+  Serial.println(address);
 }

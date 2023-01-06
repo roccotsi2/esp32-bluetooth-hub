@@ -28,7 +28,7 @@
 
 // 0: bluetooth connection will be established
 // 1: test values instead of bluetooth connection
-#define DEMO_MODE 1
+#define DEMO_MODE 0
 
 // start address to read/write from/in EEPROM
 #define EEPROM_ADDRESS_CONFIGURATION  0
@@ -62,13 +62,14 @@ uint16_t counterConnects = 0;
 SmartbmsutilRunInfo _currentSmartbmsutilRunInfo;
 GasData _gasData;
 SavedDataConfiguration configuration;
-bool bmsFound = false; // stores if the BMS was found initially
-bool scaleFound = false; // stores if the scale was found initially
+//bool bmsFound = false; // stores if the BMS was found initially
+//bool scaleFound = false; // stores if the scale was found initially
 bool bmsConnectionSuccessful = false; // stores if the last connection attemp was successful
 bool scaleConnectionSuccessful = false; // stores if the last connection attemp was successful
 bool bluetoothDataReceived = false; // set to true, if data was successfull received
 bool bluetoothDisabled = false; // if set to true, no connection via bluetooth is done
 TouchClass touch;
+bool dataScreenDisplayed = false;
 
 // Touch variables
 char pressedListBoxItem[30];
@@ -170,23 +171,28 @@ void fetchScaleData() {
   }  
 }
 
-void taskFetchAndDisplayBmsAndGasData(void * parameter) {
+void taskFetchAndDisplayBmsAndGasData(void *parameter) {
   for(;;){ // infinite loop
-    if (DEMO_MODE == 0 && !bluetoothDisabled && (bmsFound || scaleFound)) {
+    if (DEMO_MODE == 0 && !bluetoothDisabled && dataScreenDisplayed /*&& (bmsFound || scaleFound)*/) {
       unsigned long currentMillis = millis();
       if (lastMillisMeasured == 0 || ((currentMillis - lastMillisMeasured) > configuration.updateIntervalSeconds * 1000)) {
         lastMillisMeasured = currentMillis;
         
         // next values needs to be fetched (BMS and scale)
-        if (bmsFound && !configuration.skipBms) {
+        bool dataUpdated = false;
+        if (/*bmsFound &&*/ !configuration.skipBms && strlen(configuration.bluetoothAddressBms) > 0) {
           fetchBmsData();
+          dataUpdated = true;
         }
-        if (scaleFound && !configuration.skipScale) {
+        if (/*scaleFound &&*/ !configuration.skipScale && strlen(configuration.bluetoothAddressScale) > 0) {
           fetchScaleData();
+          dataUpdated = true;
         }
-        displayDrawBmsAndGasOverview(&_currentSmartbmsutilRunInfo, &_gasData);
-        Serial.print("Free heap: ");
-        Serial.println(ESP.getFreeHeap());
+        if (dataUpdated) {
+          displayDrawBmsAndGasOverview(&_currentSmartbmsutilRunInfo, &_gasData);
+          Serial.print("Free heap: ");
+          Serial.println(ESP.getFreeHeap());
+        }
       }
     }
     
@@ -219,7 +225,7 @@ void showDataScreen() {
 }
 
 void startScanForBms() {
-  bmsFound = bluetoothScan(DEVICE_INDEX_BMS, "DL-", serviceUUIDBms);
+  bool bmsFound = bluetoothScan(DEVICE_INDEX_BMS, "DL-", serviceUUIDBms);
   Serial.print("bmsFound = ");
   Serial.println(bmsFound);
 }
@@ -234,12 +240,15 @@ void setup() {
   displayStartingMessage();
 
   loadConfigurationFromEeprom();
+  if (strlen(configuration.bluetoothAddressBms) > 0) {
+    bluetoothSetDeviceAddress(DEVICE_INDEX_BMS, configuration.bluetoothAddressBms);
+  }
 
   Serial.println("Starting Arduino BLE Client application...");
   bluetoothSetupBluetoothBle();
 
   if (DEMO_MODE == 0) {    
-    if (!configuration.skipBms) {
+    /*if (!configuration.skipBms) {
       bmsFound = bluetoothScan(DEVICE_INDEX_BMS, "DL-", serviceUUIDBms);
       Serial.print("bmsFound = ");
       Serial.println(bmsFound);
@@ -255,13 +264,14 @@ void setup() {
     } else {
       scaleFound = false;
       Serial.println("Scale skipped");
-    }
+    }*/
   } else {
     // DEMO data
     SmartbmsutilRunInfo runInfo;
     smartbmsdemoFillSmartbmsutilRunInfo(&runInfo);
     displayDrawContentBmsDetail(&runInfo);
   }
+  dataScreenDisplayed = true; // this is the default
   Serial.println("Setup finished");
 
   // start tasks
@@ -333,22 +343,29 @@ void checkTouchControls() {
       Serial.println(")");
       if (buttonData.id == buttonIdSetupHeader) {
         displaySetupMenuMain();
+        dataScreenDisplayed = false;
       } else if (buttonData.id == buttonIdSetupBms) {
         displaySetupBms();
+        dataScreenDisplayed = false;
       } else if (buttonData.id == buttonIdSetupGas) {
         // TODO
+        dataScreenDisplayed = false;
       } else if (buttonData.id == buttonIdSetupBmsEnable) {
         configuration.skipBms = !configuration.skipBms;
         displaySetupBms();
+        dataScreenDisplayed = false;
       } else if (buttonData.id == buttonIdSetupCancel) {
         showDataScreen();
+        dataScreenDisplayed = true;
       } else if (buttonData.id == buttonIdSetupBmsScanBluetooth) {
         displayScanBluetoothRunning();
         startScanForBms();
         displayScanBluetoothResult();
+        dataScreenDisplayed = false;
       } else if (buttonData.id == buttonIdSetupSave) {
         saveCurrentConfigurationToEeprom();
         showDataScreen();
+        dataScreenDisplayed = true;
       }
     } else if (touchutilGetPressedListBoxItem(pressedListBoxItem, sizeof(pressedListBoxItem))) {
       Serial.print("ListBoxItem pressed: ");
