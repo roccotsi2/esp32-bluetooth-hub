@@ -561,10 +561,10 @@ void displaySetupBms() {
   if (strlen(configuration.bluetoothNameBms) > 0) {
     char text[35];
     sprintf(text, "Name: %s", configuration.bluetoothNameBms);
-    drawString(18, 20, 150, text);
+    drawString(18, 20, 180, text);
   }
 
-  buttonIdSetupBmsScanBluetooth = touchutilGetButtonIdByIndex(touchutilAddButton(20, 170, 190, 50, "Suchen...", true, frameBuffer));
+  buttonIdSetupBmsScanBluetooth = touchutilGetButtonIdByIndex(touchutilAddButton(20, 220, 190, 50, "Suchen...", true, frameBuffer));
   
   updateDisplay(); 
   xSemaphoreGive(mutexDisplay);

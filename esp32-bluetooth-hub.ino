@@ -222,6 +222,7 @@ void showDataScreen() {
     smartbmsdemoFillSmartbmsutilRunInfo(&runInfo);
     displayDrawContentBmsDetail(&runInfo);
   }
+  dataScreenDisplayed = true; // this is the default
 }
 
 void startScanForBms() {
@@ -234,7 +235,7 @@ void setup() {
   Serial.begin(115200);
 
   mutexDisplay = xSemaphoreCreateMutex();
-  buttonsInit();
+  //buttonsInit();
   touchInit();
   displayInit();
   displayStartingMessage();
@@ -247,8 +248,8 @@ void setup() {
   Serial.println("Starting Arduino BLE Client application...");
   bluetoothSetupBluetoothBle();
 
-  if (DEMO_MODE == 0) {    
-    /*if (!configuration.skipBms) {
+  /*if (DEMO_MODE == 0) {    
+    if (!configuration.skipBms) {
       bmsFound = bluetoothScan(DEVICE_INDEX_BMS, "DL-", serviceUUIDBms);
       Serial.print("bmsFound = ");
       Serial.println(bmsFound);
@@ -264,14 +265,14 @@ void setup() {
     } else {
       scaleFound = false;
       Serial.println("Scale skipped");
-    }*/
+    }
   } else {
     // DEMO data
     SmartbmsutilRunInfo runInfo;
     smartbmsdemoFillSmartbmsutilRunInfo(&runInfo);
     displayDrawContentBmsDetail(&runInfo);
-  }
-  dataScreenDisplayed = true; // this is the default
+  }*/
+  showDataScreen();
   Serial.println("Setup finished");
 
   // start tasks
@@ -286,7 +287,7 @@ void setup() {
   );
 }
 
-void checkPhysicalButtons() {
+/*void checkPhysicalButtons() {
   int buttonPress = buttonsCheckButtonPressed(GPIO_3);
   if (buttonPress == BUTTON_SHORT_PRESSED) {
     Serial.println("Sel pressed");
@@ -294,7 +295,7 @@ void checkPhysicalButtons() {
     Serial.println("Sel long pressed");
     switchBluetoothEnabledState();
   }
-}
+}*/
 
 void saveCurrentConfigurationToEeprom() {
   byte buffer[sizeof(configuration)];
@@ -381,8 +382,9 @@ void checkTouchControls() {
   }
 }
 
+// main task handles only touch events
 void loop() {
-  checkPhysicalButtons();
+  //checkPhysicalButtons();
   checkTouchControls();
 
   // Pause the task again for 100ms

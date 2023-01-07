@@ -1,4 +1,4 @@
-void buttonsInit() {
+/*void buttonsInit() {
   pinMode(GPIO_1, INPUT);
   pinMode(GPIO_2, INPUT);
   pinMode(GPIO_3, INPUT);
@@ -26,4 +26,4 @@ byte buttonsCheckButtonPressed(byte port) {
     }
   }
   return BUTTON_NOT_PRESSED;
-}
+}*/
