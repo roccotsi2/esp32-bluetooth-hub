@@ -6,6 +6,7 @@ void displayClearTouchData() {
   buttonIdSetupBms = -1;
   buttonIdSetupGas = -1;
   buttonIdSetupBmsEnable = -1;
+  buttonIdSetupScaleEnable = -1;
   buttonIdSetupSave = -1;
   buttonIdSetupCancel = -1;
   buttonIdSetupBmsScanBluetooth = -1;
@@ -599,7 +600,12 @@ void displaySetupDevice(int deviceIndex) {
   } else {
     strncpy(text, "OFF", sizeof(text));
   }
-  buttonIdSetupBmsEnable = touchutilGetButtonIdByIndex(touchutilAddButton(125, 65, 100, 50, text, true, frameBuffer));
+  
+  if (deviceIndex == DEVICE_INDEX_BMS) {
+    buttonIdSetupBmsEnable = touchutilGetButtonIdByIndex(touchutilAddButton(125, 65, 100, 50, text, true, frameBuffer));
+  } else {
+    buttonIdSetupScaleEnable = touchutilGetButtonIdByIndex(touchutilAddButton(125, 65, 100, 50, text, true, frameBuffer));
+  }
   displayDrawCancelButton();
   displayDrawSaveButton();
 

@@ -79,6 +79,7 @@ int buttonIdSetupHeader;
 int buttonIdSetupBms;
 int buttonIdSetupGas;
 int buttonIdSetupBmsEnable;
+int buttonIdSetupScaleEnable;
 int buttonIdSetupSave;
 int buttonIdSetupCancel;
 int buttonIdSetupBmsScanBluetooth;
@@ -186,12 +187,16 @@ void taskFetchAndDisplayBmsAndGasData(void *parameter) {
         if (/*bmsFound &&*/ !configuration.skipBms && strlen(configuration.bluetoothAddressBms) > 0) {
           fetchBmsData();
           dataUpdated = true;
+        } else {
+          bmsConnectionSuccessful = false;
         }
         if (/*scaleFound &&*/ !configuration.skipScale && strlen(configuration.bluetoothAddressScale) > 0) {
           fetchScaleData();
           dataUpdated = true;
+        } else {
+          scaleConnectionSuccessful = false;
         }
-        if (dataUpdated) {
+        if (dataUpdated && dataScreenDisplayed) {
           displayDrawBmsAndGasOverview(&_currentSmartbmsutilRunInfo, &_gasData);
           Serial.print("Free heap: ");
           Serial.println(ESP.getFreeHeap());
@@ -366,6 +371,10 @@ void checkTouchControls() {
       } else if (buttonData.id == buttonIdSetupBmsEnable) {
         configuration.skipBms = !configuration.skipBms;
         displaySetupDevice(DEVICE_INDEX_BMS); 
+        dataScreenDisplayed = false;
+      } else if (buttonData.id == buttonIdSetupScaleEnable) {
+        configuration.skipScale = !configuration.skipScale;
+        displaySetupDevice(DEVICE_INDEX_SCALE); 
         dataScreenDisplayed = false;
       } else if (buttonData.id == buttonIdSetupCancel) {
         showDataScreen();
