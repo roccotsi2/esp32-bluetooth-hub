@@ -41,6 +41,8 @@ const int MILLIS_LONG_BUTTON_PRESS = 2000;
 
 const byte DEVICE_INDEX_BMS = 0;
 const byte DEVICE_INDEX_SCALE = 1;
+#define BLUETOOTH_PREFIX_BMS   "DL-"
+#define BLUETOOTH_PREFIX_SCALE "SCALE-"
 
 // The remote service we wish to connect to (Smart BMS)
 static BLEUUID serviceUUIDBms("0000fff0-0000-1000-8000-00805f9b34fb");
@@ -80,6 +82,7 @@ int buttonIdSetupBmsEnable;
 int buttonIdSetupSave;
 int buttonIdSetupCancel;
 int buttonIdSetupBmsScanBluetooth;
+int buttonIdSetupScaleScanBluetooth;
 
 // Bluetooth variables
 char foundBluetoothAddresses[10][20]; // 10 adresses with each max. 20 characters
@@ -226,9 +229,15 @@ void showDataScreen() {
 }
 
 void startScanForBms() {
-  bool bmsFound = bluetoothScan(DEVICE_INDEX_BMS, "DL-", serviceUUIDBms);
+  bool bmsFound = bluetoothScan(DEVICE_INDEX_BMS, BLUETOOTH_PREFIX_BMS, serviceUUIDBms);
   Serial.print("bmsFound = ");
   Serial.println(bmsFound);
+}
+
+void startScanForScale() {
+  bool scaleFound = bluetoothScan(DEVICE_INDEX_SCALE, BLUETOOTH_PREFIX_SCALE, serviceUUIDScale);
+  Serial.print("scaleFound = ");
+  Serial.println(scaleFound);
 }
 
 void setup() {
@@ -243,6 +252,9 @@ void setup() {
   loadConfigurationFromEeprom();
   if (strlen(configuration.bluetoothAddressBms) > 0) {
     bluetoothSetDeviceAddress(DEVICE_INDEX_BMS, configuration.bluetoothAddressBms);
+  }
+  if (strlen(configuration.bluetoothAddressScale) > 0) {
+    bluetoothSetDeviceAddress(DEVICE_INDEX_SCALE, configuration.bluetoothAddressScale);
   }
 
   Serial.println("Starting Arduino BLE Client application...");
@@ -346,14 +358,14 @@ void checkTouchControls() {
         displaySetupMenuMain();
         dataScreenDisplayed = false;
       } else if (buttonData.id == buttonIdSetupBms) {
-        displaySetupBms();
+        displaySetupDevice(DEVICE_INDEX_BMS); 
         dataScreenDisplayed = false;
       } else if (buttonData.id == buttonIdSetupGas) {
-        // TODO
+        displaySetupDevice(DEVICE_INDEX_SCALE); 
         dataScreenDisplayed = false;
       } else if (buttonData.id == buttonIdSetupBmsEnable) {
         configuration.skipBms = !configuration.skipBms;
-        displaySetupBms();
+        displaySetupDevice(DEVICE_INDEX_BMS); 
         dataScreenDisplayed = false;
       } else if (buttonData.id == buttonIdSetupCancel) {
         showDataScreen();
@@ -361,6 +373,11 @@ void checkTouchControls() {
       } else if (buttonData.id == buttonIdSetupBmsScanBluetooth) {
         displayScanBluetoothRunning();
         startScanForBms();
+        displayScanBluetoothResult();
+        dataScreenDisplayed = false;
+      } else if (buttonData.id == buttonIdSetupScaleScanBluetooth) {
+        displayScanBluetoothRunning();
+        startScanForScale();
         displayScanBluetoothResult();
         dataScreenDisplayed = false;
       } else if (buttonData.id == buttonIdSetupSave) {
@@ -373,9 +390,17 @@ void checkTouchControls() {
       Serial.println(pressedListBoxItem); 
       for (int i = 0; i < foundBluetoothDevices; i++) {
         if (strcmp(pressedListBoxItem, foundBluetoothNames[i]) == 0) {
-          strcpy(configuration.bluetoothNameBms, foundBluetoothNames[i]);
-          strcpy(configuration.bluetoothAddressBms, foundBluetoothAddresses[i]);
-          displaySetupBms();   
+          if (strstr(foundBluetoothNames[i], BLUETOOTH_PREFIX_BMS) == foundBluetoothNames[i]) {
+            // BMS
+            strcpy(configuration.bluetoothNameBms, foundBluetoothNames[i]);
+            strcpy(configuration.bluetoothAddressBms, foundBluetoothAddresses[i]);
+            displaySetupDevice(DEVICE_INDEX_BMS);   
+          } else if (strstr(foundBluetoothNames[i], BLUETOOTH_PREFIX_SCALE) == foundBluetoothNames[i]) {
+            // SCALE
+            strcpy(configuration.bluetoothNameScale, foundBluetoothNames[i]);
+            strcpy(configuration.bluetoothAddressScale, foundBluetoothAddresses[i]);
+            displaySetupDevice(DEVICE_INDEX_SCALE); 
+          }
         }
       }
     }

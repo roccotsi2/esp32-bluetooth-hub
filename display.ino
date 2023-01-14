@@ -6,7 +6,10 @@ void displayClearTouchData() {
   buttonIdSetupBms = -1;
   buttonIdSetupGas = -1;
   buttonIdSetupBmsEnable = -1;
+  buttonIdSetupSave = -1;
   buttonIdSetupCancel = -1;
+  buttonIdSetupBmsScanBluetooth = -1;
+  buttonIdSetupScaleScanBluetooth = -1;
 }
 
 void displayClearDisplayAndTouchControls() {
@@ -541,15 +544,57 @@ void displaySetupMenuMain() {
   xSemaphoreGive(mutexDisplay);
 }
 
-void displaySetupBms() {
+bool displayGetDeviceSkip(int deviceIndex) {
+  if (!displayCheckDeviceIndex(deviceIndex)) {
+    return false;
+  }
+  
+  if (deviceIndex == DEVICE_INDEX_BMS) {
+    return configuration.skipBms;
+  } else {
+    return configuration.skipScale;
+  }
+}
+
+char* displayGetDeviceAddress(int deviceIndex) {
+  if (!displayCheckDeviceIndex(deviceIndex)) {
+    return NULL;
+  }
+  
+  if (deviceIndex == DEVICE_INDEX_BMS) {
+    return configuration.bluetoothNameBms;
+  } else {
+    return configuration.bluetoothNameScale;
+  }
+}
+
+bool displayCheckDeviceIndex(int deviceIndex) {
+  if (deviceIndex != DEVICE_INDEX_BMS && deviceIndex != DEVICE_INDEX_SCALE) {
+    Serial.print("Invalid device index: ");
+    Serial.println(deviceIndex);
+    return false;
+  } else {
+    return true;
+  }
+}
+
+void displaySetupDevice(int deviceIndex) {
+  if (!displayCheckDeviceIndex(deviceIndex)) {
+    return;
+  }
+  
   xSemaphoreTake(mutexDisplay, portMAX_DELAY);
   
   displayClearDisplayAndTouchControls();
   drawHeader("Setup", false);
 
-  drawString(18, 20, 105, "BMS:");
+  if (deviceIndex == DEVICE_INDEX_BMS) {
+    drawString(18, 20, 105, "BMS:");
+  } else {
+    drawString(18, 20, 105, "GAS:");
+  }
   char text[4];
-  if (!configuration.skipBms) {
+  if (!displayGetDeviceSkip(deviceIndex)) {
     strncpy(text, "ON", sizeof(text));
   } else {
     strncpy(text, "OFF", sizeof(text));
@@ -558,13 +603,17 @@ void displaySetupBms() {
   displayDrawCancelButton();
   displayDrawSaveButton();
 
-  if (strlen(configuration.bluetoothNameBms) > 0) {
+  if (strlen(displayGetDeviceAddress(deviceIndex)) > 0) {
     char text[35];
-    sprintf(text, "Name: %s", configuration.bluetoothNameBms);
+    sprintf(text, "Name: %s", displayGetDeviceAddress(deviceIndex));
     drawString(18, 20, 180, text);
   }
 
-  buttonIdSetupBmsScanBluetooth = touchutilGetButtonIdByIndex(touchutilAddButton(20, 220, 190, 50, "Suchen...", true, frameBuffer));
+  if (deviceIndex == DEVICE_INDEX_BMS) {
+    buttonIdSetupBmsScanBluetooth = touchutilGetButtonIdByIndex(touchutilAddButton(20, 220, 190, 50, "Suchen...", true, frameBuffer));
+  } else {
+    buttonIdSetupScaleScanBluetooth = touchutilGetButtonIdByIndex(touchutilAddButton(20, 220, 190, 50, "Suchen...", true, frameBuffer));
+  }
   
   updateDisplay(); 
   xSemaphoreGive(mutexDisplay);
