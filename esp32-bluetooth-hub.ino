@@ -78,6 +78,7 @@ char pressedListBoxItem[30];
 int buttonIdSetupHeader;
 int buttonIdSetupBms;
 int buttonIdSetupGas;
+int buttonIdSetupReset;
 int buttonIdSetupBmsEnable;
 int buttonIdSetupScaleEnable;
 int buttonIdSetupSave;
@@ -315,6 +316,9 @@ void setup() {
 }*/
 
 void saveCurrentConfigurationToEeprom() {
+  Serial.println("saveCurrentConfigurationToEeprom");
+  Serial.print("skipBms before: ");
+  Serial.println(configuration.skipBms);
   byte buffer[sizeof(configuration)];
   byte crcBuffer[2];
   memcpy(buffer, &configuration, sizeof(configuration));  
@@ -326,6 +330,9 @@ void saveCurrentConfigurationToEeprom() {
   EEPROM.put(EEPROM_ADDRESS_CONFIGURATION, configuration);
   EEPROM.commit();
   EEPROM.end();
+
+  Serial.print("skipBms after: ");
+  Serial.println(configuration.skipBms);
 }
 
 void loadConfigurationFromEeprom() {
@@ -354,42 +361,54 @@ void checkTouchControls() {
     ButtonData buttonData;
     if (touchutilGetPressedButton(&buttonData)) {
       // button found -> buttonData is filled
-      Serial.print("Button pressed: ");
+      Serial.print("checkTouchControls(): Button pressed: ");
       Serial.print(buttonData.text);        
       Serial.print(" (ID = ");
       Serial.print(buttonData.id);
       Serial.println(")");
       if (buttonData.id == buttonIdSetupHeader) {
+        Serial.println("buttonIdSetupHeader");
         displaySetupMenuMain();
         dataScreenDisplayed = false;
       } else if (buttonData.id == buttonIdSetupBms) {
+        Serial.println("buttonIdSetupBms");
         displaySetupDevice(DEVICE_INDEX_BMS); 
         dataScreenDisplayed = false;
       } else if (buttonData.id == buttonIdSetupGas) {
+        Serial.println("buttonIdSetupGas");
         displaySetupDevice(DEVICE_INDEX_SCALE); 
         dataScreenDisplayed = false;
+      } else if (buttonData.id == buttonIdSetupReset) {
+        Serial.println("buttonIdSetupReset");
+        ESP.restart();
       } else if (buttonData.id == buttonIdSetupBmsEnable) {
+        Serial.println("buttonIdSetupBmsEnable");
         configuration.skipBms = !configuration.skipBms;
         displaySetupDevice(DEVICE_INDEX_BMS); 
         dataScreenDisplayed = false;
       } else if (buttonData.id == buttonIdSetupScaleEnable) {
+        Serial.println("buttonIdSetupScaleEnable");
         configuration.skipScale = !configuration.skipScale;
         displaySetupDevice(DEVICE_INDEX_SCALE); 
         dataScreenDisplayed = false;
       } else if (buttonData.id == buttonIdSetupCancel) {
+        Serial.println("buttonIdSetupCancel");
         showDataScreen();
         dataScreenDisplayed = true;
       } else if (buttonData.id == buttonIdSetupBmsScanBluetooth) {
+        Serial.println("buttonIdSetupBmsScanBluetooth");
         displayScanBluetoothRunning();
         startScanForBms();
         displayScanBluetoothResult();
         dataScreenDisplayed = false;
       } else if (buttonData.id == buttonIdSetupScaleScanBluetooth) {
+        Serial.println("buttonIdSetupScaleScanBluetooth");
         displayScanBluetoothRunning();
         startScanForScale();
         displayScanBluetoothResult();
         dataScreenDisplayed = false;
       } else if (buttonData.id == buttonIdSetupSave) {
+        Serial.println("buttonIdSetupSave");
         saveCurrentConfigurationToEeprom();
         showDataScreen();
         dataScreenDisplayed = true;

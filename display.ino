@@ -5,6 +5,7 @@ void displayClearTouchData() {
   buttonIdSetupHeader = -1;
   buttonIdSetupBms = -1;
   buttonIdSetupGas = -1;
+  buttonIdSetupReset = -1;
   buttonIdSetupBmsEnable = -1;
   buttonIdSetupScaleEnable = -1;
   buttonIdSetupSave = -1;
@@ -247,9 +248,9 @@ void drawHeader(char *title, boolean drawSetupButton) {
 
   // TODO: remove
   // display num of connects
-  char text[10];
+  /*char text[10];
   sprintf(text, "%d", counterConnects);
-  drawString(12, 580 + 40 + 70 + 70, 27, text);
+  drawString(12, 580 + 40 + 70 + 70, 27, text);*/
 }
 
 void drawBmsSectionBorders(boolean devideRightArea) {
@@ -539,6 +540,7 @@ void displaySetupMenuMain() {
   drawHeader("Setup", false);
   buttonIdSetupBms = touchutilGetButtonIdByIndex(touchutilAddButton(20, 80, 150, 50, "BMS", true, frameBuffer));
   buttonIdSetupGas = touchutilGetButtonIdByIndex(touchutilAddButton(20, 200, 150, 50, "Gas", true, frameBuffer));
+  buttonIdSetupReset = touchutilGetButtonIdByIndex(touchutilAddButton(20, 320, 150, 50, "Reset", true, frameBuffer));
   displayDrawCancelButton();
   
   updateDisplay(); 
