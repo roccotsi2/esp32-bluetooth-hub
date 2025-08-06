@@ -12,6 +12,7 @@ void displayClearTouchData() {
   buttonIdSetupCancel = -1;
   buttonIdSetupBmsScanBluetooth = -1;
   buttonIdSetupScaleScanBluetooth = -1;
+  buttonIdSetupScaleTare = -1;
 }
 
 void displayClearDisplayAndTouchControls() {
@@ -621,6 +622,11 @@ void displaySetupDevice(int deviceIndex) {
     buttonIdSetupBmsScanBluetooth = touchutilGetButtonIdByIndex(touchutilAddButton(20, 220, 190, 50, "Suchen...", true, frameBuffer));
   } else {
     buttonIdSetupScaleScanBluetooth = touchutilGetButtonIdByIndex(touchutilAddButton(20, 220, 190, 50, "Suchen...", true, frameBuffer));
+
+    if (!configuration.skipScale && strlen(configuration.bluetoothAddressScale) > 0) {
+      // display tare button only if scale is connected
+      buttonIdSetupScaleTare = touchutilGetButtonIdByIndex(touchutilAddButton(20, 300, 190, 50, "Tarieren", true, frameBuffer));
+    }
   }
   
   updateDisplay(); 

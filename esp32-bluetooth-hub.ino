@@ -72,6 +72,7 @@ bool bluetoothDataReceived = false; // set to true, if data was successfull rece
 bool bluetoothDisabled = false; // if set to true, no connection via bluetooth is done
 TouchClass touch;
 bool dataScreenDisplayed = false;
+bool executeTare = false; // if set to true, the next time the bluetooth task sends a tare command
 
 // Touch variables
 char pressedListBoxItem[30];
@@ -85,6 +86,7 @@ int buttonIdSetupSave;
 int buttonIdSetupCancel;
 int buttonIdSetupBmsScanBluetooth;
 int buttonIdSetupScaleScanBluetooth;
+int buttonIdSetupScaleTare;
 
 // Bluetooth variables
 char foundBluetoothAddresses[10][20]; // 10 adresses with each max. 20 characters
@@ -176,31 +178,68 @@ void fetchScaleData() {
   }  
 }
 
+// TODO PL: refactor to common method
+void scaleTare() {
+  Serial.println("Scale tare");
+  bluetoothDisconnect(); // disconnect to be sure that no former connection is established
+  delay(200);
+  if (!bluetoothIsConnected()) {
+    Serial.println("Calling bluetoothConnectToServer");
+    if (bluetoothConnectToServer(DEVICE_INDEX_SCALE, serviceUUIDScale, charReadUUIDScale, charWriteUUIDScale)) {
+      counterConnects++;
+      Serial.print("# Connects: ");
+      Serial.println(counterConnects);
+    
+      if (bluetoothIsConnected()) {
+        scaleutilSendCommandScaleTareAsync(); // send command async
+        /*if (!waitUntilDataReceived(10)) {
+          scaleConnectionSuccessful = false;
+        }*/
+      } else {
+        Serial.println("Could not connect to scale, no data was sent");
+        scaleConnectionSuccessful = false;
+      }
+    } else {
+      Serial.println("Could not connect to scale, no data was sent");
+      scaleConnectionSuccessful = false;
+    }
+  } else {
+    Serial.println("Could not disconnect bluetooth, no data was sent");
+    scaleConnectionSuccessful = false;
+  }  
+}
+
 void taskFetchAndDisplayBmsAndGasData(void *parameter) {
   for(;;){ // infinite loop
-    if (DEMO_MODE == 0 && !bluetoothDisabled && dataScreenDisplayed /*&& (bmsFound || scaleFound)*/) {
-      unsigned long currentMillis = millis();
-      if (lastMillisMeasured == 0 || ((currentMillis - lastMillisMeasured) > configuration.updateIntervalSeconds * 1000)) {
-        lastMillisMeasured = currentMillis;
-        
-        // next values needs to be fetched (BMS and scale)
-        bool dataUpdated = false;
-        if (/*bmsFound &&*/ !configuration.skipBms && strlen(configuration.bluetoothAddressBms) > 0) {
-          fetchBmsData();
-          dataUpdated = true;
-        } else {
-          bmsConnectionSuccessful = false;
-        }
-        if (/*scaleFound &&*/ !configuration.skipScale && strlen(configuration.bluetoothAddressScale) > 0) {
-          fetchScaleData();
-          dataUpdated = true;
-        } else {
-          scaleConnectionSuccessful = false;
-        }
-        if (dataUpdated && dataScreenDisplayed) {
-          displayDrawBmsAndGasOverview(&_currentSmartbmsutilRunInfo, &_gasData);
-          Serial.print("Free heap: ");
-          Serial.println(ESP.getFreeHeap());
+    if (DEMO_MODE == 0 && !bluetoothDisabled) {
+      if (executeTare) {
+          // send a tare command
+          scaleTare();
+          executeTare = false;
+      } else if (dataScreenDisplayed /*&& (bmsFound || scaleFound)*/) {
+        unsigned long currentMillis = millis();
+        if (lastMillisMeasured == 0 || ((currentMillis - lastMillisMeasured) > configuration.updateIntervalSeconds * 1000)) {
+          lastMillisMeasured = currentMillis;
+          
+          // next values needs to be fetched (BMS and scale)
+          bool dataUpdated = false;
+          if (/*bmsFound &&*/ !configuration.skipBms && strlen(configuration.bluetoothAddressBms) > 0) {
+            fetchBmsData();
+            dataUpdated = true;
+          } else {
+            bmsConnectionSuccessful = false;
+          }
+          if (/*scaleFound &&*/ !configuration.skipScale && strlen(configuration.bluetoothAddressScale) > 0) {
+            fetchScaleData();
+            dataUpdated = true;
+          } else {
+            scaleConnectionSuccessful = false;
+          }
+          if (dataUpdated && dataScreenDisplayed) {
+            displayDrawBmsAndGasOverview(&_currentSmartbmsutilRunInfo, &_gasData);
+            Serial.print("Free heap: ");
+            Serial.println(ESP.getFreeHeap());
+          }
         }
       }
     }
@@ -407,6 +446,9 @@ void checkTouchControls() {
         startScanForScale();
         displayScanBluetoothResult();
         dataScreenDisplayed = false;
+      } else if (buttonData.id == buttonIdSetupScaleTare) {
+        // TODO PL: display successful tare end
+        executeTare = true; // inform bluetooth task to send a tare command the next loop
       } else if (buttonData.id == buttonIdSetupSave) {
         Serial.println("buttonIdSetupSave");
         saveCurrentConfigurationToEeprom();

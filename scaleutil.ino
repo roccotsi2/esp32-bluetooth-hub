@@ -10,6 +10,7 @@ uint8_t usagePerDayGramBufferCount = 0;
 uint8_t usagePerDayGramBufferIndex = 0;
 
 const char COMMAND_READ_WEIGHT[] = "READ";
+const char COMMAND_TARE[] = "TARE";
 const int SIZE_CURRENT_WEIGHT = sizeof(ScaleCurrentWeight);
 const int MAX_NETTO_WEIGHT = 11000;
 const int TARA_WEIGHT_GRAM = 5400;
@@ -153,6 +154,20 @@ void scaleutilSendCommandScaleCurrentWeightAsync() {
   byte buffer[size];
   for (int i = 0; i < size; i++) {
     buffer[i] = (byte) COMMAND_READ_WEIGHT[i];
+  }
+  bluetoothDataReceived = false;
+  bluetoothSendByteArray(buffer, sizeof(buffer));
+}
+
+/**
+ * Send command to tare (non blocking)
+ */
+void scaleutilSendCommandScaleTareAsync() {
+  Serial.println("Sending Command for Tare"); 
+  int size =  sizeof(COMMAND_TARE);
+  byte buffer[size];
+  for (int i = 0; i < size; i++) {
+    buffer[i] = (byte) COMMAND_TARE[i];
   }
   bluetoothDataReceived = false;
   bluetoothSendByteArray(buffer, sizeof(buffer));
