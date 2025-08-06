@@ -3,6 +3,7 @@
 // internal state
 ButtonData buttons[20];
 ListBoxData listBox;
+NumberEntryData numberEntry;
 int countButtons = 0;
 ButtonData lastPressedButton;
 char lastPressedListBoxItem[30];
@@ -244,7 +245,13 @@ void touchutilCheckTouch(uint8_t *frameBuffer) {
     }
   }
 
-  touchutilCheckListBoxButtons(frameBuffer);
+  if (touchutilIsListBoxDisplayed()) {
+    touchutilCheckListBoxButtons(frameBuffer);
+  }
+
+  if (touchutilIsNumberEntryDisplayed()) {
+    touchutilCheckNumberEntryButtons(frameBuffer);
+  }
 }
 
 bool touchutilGetPressedButton(ButtonData *pressedButtonData) {
@@ -300,23 +307,24 @@ void touchutilDrawScreen() {
   epd_poweroff();
 }
 
-void touchutilInitializeRect(Rect_t rect) {
-  rect.x = 0;
-  rect.y = 0;
-  rect.width = 0;
-  rect.height = 0;
+void touchutilInitializeRect(Rect_t *rect) {
+  rect->x = 0;
+  rect->y = 0;
+  rect->width = 0;
+  rect->height = 0;
 }
 
+// TODO PL: call by reference
 void touchutilInitializeButton(ButtonData button) {
   button.id = 0;
-  touchutilInitializeRect(button.area);
+  touchutilInitializeRect(&button.area);
   button.drawBorder = false;
   memset(button.text, 0, sizeof(button.text));
 }
 
-void touchutilInitializeListBox(ListBoxData listBox) {
+void touchutilInitializeListBox() {
   listBox.id = 0;
-  touchutilInitializeRect(listBox.area);
+  touchutilInitializeRect(&listBox.area);
   listBox.text = NULL;
   memset(listBox.elements, 0, sizeof(listBox.elements));
   listBox.elementCount = 0;
@@ -330,13 +338,13 @@ void touchutilInitializeListBox(ListBoxData listBox) {
 }
 
 /**
- * Initializes all internal variables and clears prvious state
+ * Initializes all internal variables and clears previous state
  */
 void touchutilInitialize() {
   for (int i = 0; i < sizeof(buttons); i++) {
     touchutilInitializeButton(buttons[i]);
   }
-  touchutilInitializeListBox(listBox);
+  touchutilInitializeListBox();
   countButtons = 0;
   touchutilInitializeButton(lastPressedButton);
   memset(lastPressedListBoxItem, 0, sizeof(lastPressedListBoxItem));
@@ -348,4 +356,162 @@ void touchutilInitialize() {
   memset(listBox.buttonIndexElements, -1, sizeof(listBox.buttonIndexElements)); 
   listBox.buttonIndexUp = -1;
   listBox.buttonIndexDown = -1;
+
+  touchutilInitializeNumberEntry();
+}
+
+boolean touchutilAddNumberEntry(int id, int x, int y, int width, int height, uint8_t *frameBuffer) {
+  Serial.println("touchutilAddNumberEntry");
+  bool success = touchutilRegisterNumberEntry(id, x, y, width, height);
+  if (!success) {
+    return false;
+  }
+
+  touchutilDrawNumberEntry(true, frameBuffer);
+  return true;
+}
+
+void touchutilNumberEntryClearNumber() {
+  numberEntry.currentCursorPos = -1;
+  memset(numberEntry.text, 0, sizeof(numberEntry.text)); // empty the array
+  numberEntry.value = 0;
+}
+
+void touchutilInitializeNumberEntry() {
+  Serial.println("touchutilInitializeNumberEntry");
+  numberEntry.id = 0;
+  touchutilInitializeRect(&numberEntry.area);
+  touchutilNumberEntryClearNumber();
+  memset(numberEntry.buttonIndex, -1, sizeof(numberEntry.buttonIndex)); // initialize buttons with -1
+}
+
+bool touchutilRegisterNumberEntry(int id, int x, int y, int width, int height) {
+  Serial.println("touchutilRegisterNumberEntry");
+  Rect_t rect = {
+    .x = x,
+    .y = y,
+    .width = width,
+    .height = height
+  };
+  numberEntry.id = id;
+  numberEntry.area = rect;
+  touchutilNumberEntryClearNumber();
+  memset(numberEntry.buttonIndex, -1, sizeof(numberEntry.buttonIndex)); // initialize buttons with -1
+  
+  return true;
+}
+
+void touchutilDrawNumberEntry(bool initialDraw, uint8_t *frameBuffer) {
+  Serial.println("touchutilDrawNumberEntry");
+  if (!initialDraw) {
+    // first clear the area of the number rect
+    epd_fill_rect(numberEntry.area.x, numberEntry.area.y, numberEntry.area.width, 50, COLOR_WHITE, frameBuffer);
+  }
+
+  int widthButtons = 80;
+  int heightButtons = 60;
+
+  // draw number rect
+  epd_draw_rect(numberEntry.area.x, numberEntry.area.y, numberEntry.area.width, 50, 0, frameBuffer);
+  
+  // draw current number
+  int text_x = numberEntry.area.x + 20;
+  int text_y = numberEntry.area.y + 40;
+  write_string((GFXfont *)&FiraSans, numberEntry.text, &text_x, &text_y, frameBuffer);
+
+  if (initialDraw) {
+    // draw buttons only the first time
+    numberEntry.buttonIndex[1] = touchutilAddButton(numberEntry.area.x, numberEntry.area.y + 1 * heightButtons, widthButtons, heightButtons, "1", true, frameBuffer);
+    numberEntry.buttonIndex[2] = touchutilAddButton(numberEntry.area.x + numberEntry.area.width / 2 - widthButtons, numberEntry.area.y + 1 * heightButtons, widthButtons, heightButtons, "2", true, frameBuffer);
+    numberEntry.buttonIndex[3] = touchutilAddButton(numberEntry.area.x + numberEntry.area.width - widthButtons, numberEntry.area.y + 1 * heightButtons, widthButtons, heightButtons, "3", true, frameBuffer);
+    numberEntry.buttonIndex[4] = touchutilAddButton(numberEntry.area.x, numberEntry.area.y + 2 * heightButtons, widthButtons, heightButtons, "4", true, frameBuffer);
+    numberEntry.buttonIndex[5] = touchutilAddButton(numberEntry.area.x + numberEntry.area.width / 2 - widthButtons, numberEntry.area.y + 2 * heightButtons, widthButtons, heightButtons, "5", true, frameBuffer);
+    numberEntry.buttonIndex[6] = touchutilAddButton(numberEntry.area.x + numberEntry.area.width - widthButtons, numberEntry.area.y + 2 * heightButtons, widthButtons, heightButtons, "6", true, frameBuffer);
+    numberEntry.buttonIndex[7] = touchutilAddButton(numberEntry.area.x, numberEntry.area.y + 3 * heightButtons, widthButtons, heightButtons, "7", true, frameBuffer);
+    numberEntry.buttonIndex[8] = touchutilAddButton(numberEntry.area.x + numberEntry.area.width / 2 - widthButtons, numberEntry.area.y + 3 * heightButtons, widthButtons, heightButtons, "8", true, frameBuffer);
+    numberEntry.buttonIndex[9] = touchutilAddButton(numberEntry.area.x + numberEntry.area.width - widthButtons, numberEntry.area.y + 3 * heightButtons, widthButtons, heightButtons, "9", true, frameBuffer);
+    numberEntry.buttonIndex[10] = touchutilAddButton(numberEntry.area.x, numberEntry.area.y + 4 * heightButtons, widthButtons, heightButtons, "C", true, frameBuffer);
+    numberEntry.buttonIndex[0] = touchutilAddButton(numberEntry.area.x + numberEntry.area.width / 2 - widthButtons, numberEntry.area.y + 4 * heightButtons, widthButtons, heightButtons, "0", true, frameBuffer);
+    numberEntry.buttonIndex[11] = touchutilAddButton(numberEntry.area.x + numberEntry.area.width - widthButtons, numberEntry.area.y + 4 * heightButtons, widthButtons, heightButtons, "OK", true, frameBuffer);
+  } else {
+    touchutilDrawScreen();
+  }
+}
+
+void touchutilCheckNumberEntryButtons(uint8_t *frameBuffer) {
+  int pressedNumber = -1;
+  if (buttonPressed) {
+    if (lastPressedButtonIndex == numberEntry.buttonIndex[0]) {
+      // 0 pressed     
+      pressedNumber = 0;
+    } else if (lastPressedButtonIndex == numberEntry.buttonIndex[1]) {
+      // 1 pressed
+      pressedNumber = 1;
+    } else if (lastPressedButtonIndex == numberEntry.buttonIndex[2]) {
+      // 2 pressed
+      pressedNumber = 2;
+    } else if (lastPressedButtonIndex == numberEntry.buttonIndex[3]) {
+      // 3 pressed
+      pressedNumber = 3;
+    } else if (lastPressedButtonIndex == numberEntry.buttonIndex[4]) {
+      // 4 pressed
+      pressedNumber = 4;
+    } else if (lastPressedButtonIndex == numberEntry.buttonIndex[5]) {
+      // 5 pressed
+      pressedNumber = 5;
+    } else if (lastPressedButtonIndex == numberEntry.buttonIndex[6]) {
+      // 6 pressed
+      pressedNumber = 6;
+    } else if (lastPressedButtonIndex == numberEntry.buttonIndex[7]) {
+      // 7 pressed
+      pressedNumber = 7;
+    } else if (lastPressedButtonIndex == numberEntry.buttonIndex[8]) {
+      // 8 pressed
+      pressedNumber = 8;
+    } else if (lastPressedButtonIndex == numberEntry.buttonIndex[9]) {
+      // 9 pressed
+      pressedNumber = 9;
+    } else if (lastPressedButtonIndex == numberEntry.buttonIndex[10]) {
+      // C pressed -> clear the whole number
+      touchutilNumberEntryClearNumber();
+      touchutilDrawNumberEntry(false, frameBuffer);
+    } else if (lastPressedButtonIndex == numberEntry.buttonIndex[11]) {
+      // OK pressed -> convert the current numbers to int
+      numberEntry.value = atoi(numberEntry.text);
+    }
+
+    if (pressedNumber >= 0 && numberEntry.currentCursorPos < 9) {
+      // add pressed number to the end
+      Serial.print("currentCursorPos: ");
+      Serial.println(String(numberEntry.currentCursorPos));
+      Serial.print("pressedNumber: ");
+      Serial.println(String(pressedNumber));
+
+      numberEntry.currentCursorPos = numberEntry.currentCursorPos + 1;
+      numberEntry.text[numberEntry.currentCursorPos] = pressedNumber + 48; // 0 = ASCII 48, 1 = ASCII 49, ...
+      touchutilDrawNumberEntry(false, frameBuffer);
+    }
+  }
+}
+
+bool touchutilIsNumberEntryDisplayed() {
+  // if NumberEntry is displayed, its width is > 0
+  Serial.print("numberEntry.area.width: ");
+  Serial.println(String(numberEntry.area.width));
+  Serial.print("numberEntry.buttonIndex[0]: ");
+  Serial.println(String(numberEntry.buttonIndex[0]));
+  return numberEntry.area.width > 0;
+}
+
+bool touchutilIsListBoxDisplayed() {
+  // if ListBox is displayed, its width is > 0
+  return listBox.area.width > 0;
+}
+
+bool touchutilIsNumberEntryOkButtonPressed() {
+  return touchutilIsNumberEntryDisplayed() && lastPressedButtonIndex == numberEntry.buttonIndex[11];
+}
+
+int touchutilNumberEntryGetValue() {
+  return numberEntry.value;
 }

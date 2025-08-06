@@ -13,6 +13,7 @@ void displayClearTouchData() {
   buttonIdSetupBmsScanBluetooth = -1;
   buttonIdSetupScaleScanBluetooth = -1;
   buttonIdSetupScaleTare = -1;
+  buttonIdSetupScaleSetTaraWeight = -1;
 }
 
 void displayClearDisplayAndTouchControls() {
@@ -622,10 +623,11 @@ void displaySetupDevice(int deviceIndex) {
     buttonIdSetupBmsScanBluetooth = touchutilGetButtonIdByIndex(touchutilAddButton(20, 220, 190, 50, "Suchen...", true, frameBuffer));
   } else {
     buttonIdSetupScaleScanBluetooth = touchutilGetButtonIdByIndex(touchutilAddButton(20, 220, 190, 50, "Suchen...", true, frameBuffer));
+    buttonIdSetupScaleSetTaraWeight = touchutilGetButtonIdByIndex(touchutilAddButton(20, 300, 190, 50, "Tara", true, frameBuffer));
 
     if (!configuration.skipScale && strlen(configuration.bluetoothAddressScale) > 0) {
       // display tare button only if scale is connected
-      buttonIdSetupScaleTare = touchutilGetButtonIdByIndex(touchutilAddButton(20, 300, 190, 50, "Tarieren", true, frameBuffer));
+      buttonIdSetupScaleTare = touchutilGetButtonIdByIndex(touchutilAddButton(20, 380, 190, 50, "Tarieren", true, frameBuffer));
     }
   }
   
@@ -662,4 +664,14 @@ void displayScanBluetoothResult() {
   
   updateDisplay(); 
   xSemaphoreGive(mutexDisplay);
+}
+
+void displaySetTareWeight() {
+  displayClearDisplayAndTouchControls();
+  drawHeader("Setup", false);
+  drawString(18, 20, 105, "Tara Gewicht in Gramm:");
+  touchutilAddNumberEntry(1, 100, 150, 600, 400, frameBuffer);
+  displayDrawCancelButton();
+  
+  updateDisplay();
 }

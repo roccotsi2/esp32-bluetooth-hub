@@ -82,6 +82,7 @@ struct SavedDataConfiguration {
   char bluetoothNameBms[30];
   char bluetoothAddressScale[20];
   char bluetoothNameScale[30];
+  int tareWeightGram;
   int updateIntervalSeconds = 30; // default value (for BMS and scale)
   bool skipBms = false; // default value
   bool skipScale = false; // default value

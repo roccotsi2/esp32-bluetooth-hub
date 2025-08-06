@@ -13,7 +13,7 @@ const char COMMAND_READ_WEIGHT[] = "READ";
 const char COMMAND_TARE[] = "TARE";
 const int SIZE_CURRENT_WEIGHT = sizeof(ScaleCurrentWeight);
 const int MAX_NETTO_WEIGHT = 11000;
-const int TARA_WEIGHT_GRAM = 5400;
+//const int TARA_WEIGHT_GRAM = 5400;
 const unsigned int SECONDS_PER_DAY = 24 * 60 * 60;
 
 void scaleutilAddUsagePerDayGramBuffer(int16_t value) {
@@ -43,7 +43,7 @@ int16_t scaleutilGetMedianUsagePerDayGram() {
 void scaleutilUpdateGasData(ScaleCurrentWeight *scaleCurrentWeight) {   
   int oldNettoWeightGram = _gasData.nettoWeightGram;
   
-  _gasData.nettoWeightGram = scaleCurrentWeight->currentBruttoGram - TARA_WEIGHT_GRAM;
+  _gasData.nettoWeightGram = scaleCurrentWeight->currentBruttoGram - configuration.tareWeightGram;
   _gasData.fillingLevelPercent = (_gasData.nettoWeightGram * 100) / MAX_NETTO_WEIGHT;
 
   // calculate gas usage between current and last measurement. Use median of last measurements

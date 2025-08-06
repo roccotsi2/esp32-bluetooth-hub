@@ -87,6 +87,7 @@ int buttonIdSetupCancel;
 int buttonIdSetupBmsScanBluetooth;
 int buttonIdSetupScaleScanBluetooth;
 int buttonIdSetupScaleTare;
+int buttonIdSetupScaleSetTaraWeight;
 
 // Bluetooth variables
 char foundBluetoothAddresses[10][20]; // 10 adresses with each max. 20 characters
@@ -449,6 +450,16 @@ void checkTouchControls() {
       } else if (buttonData.id == buttonIdSetupScaleTare) {
         // TODO PL: display successful tare end
         executeTare = true; // inform bluetooth task to send a tare command the next loop
+      } else if (touchutilIsNumberEntryOkButtonPressed()) {
+        int value = touchutilNumberEntryGetValue();
+        if (value > 0) {
+          configuration.tareWeightGram = value;
+          saveCurrentConfigurationToEeprom();
+          showDataScreen();
+          dataScreenDisplayed = true;
+        }
+      } else if (buttonData.id == buttonIdSetupScaleSetTaraWeight) {
+        displaySetTareWeight();
       } else if (buttonData.id == buttonIdSetupSave) {
         Serial.println("buttonIdSetupSave");
         saveCurrentConfigurationToEeprom();
